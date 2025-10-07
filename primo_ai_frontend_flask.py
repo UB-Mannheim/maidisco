@@ -4,6 +4,8 @@
 """
 Flask web app: Natural-language -> Primo search -> summarize results with AI
 
+See https://developers.exlibrisgroup.com/console/?url=/wp-content/uploads/primo/openapi/primoSearch.json
+
 Files included in this single-file example:
  - primo_ai_frontend.py  (this file)
  - requirements.txt      (listed below)
