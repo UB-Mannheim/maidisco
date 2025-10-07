@@ -2,3 +2,6 @@ Flask
 requests
 openai
 python-dotenv
+markdown
+httpx[socks]
+requests[socks]
