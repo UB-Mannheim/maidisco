@@ -30,8 +30,8 @@ Security
 from flask import Flask, render_template_string, request, redirect, url_for, jsonify
 import os
 import requests
-import openai
 import json
+from openai import OpenAI
 from urllib.parse import urlencode
 
 from dotenv import load_dotenv
@@ -47,7 +47,7 @@ PRIMO_INSTITUTION = os.environ.get("PRIMO_INSTITUTION")  # optional, e.g. 'MAN'
 if not OPENAI_API_KEY:
     raise RuntimeError("OPENAI_API_KEY environment variable is required")
 
-openai.api_key = OPENAI_API_KEY
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 app = Flask(__name__)
 
@@ -113,17 +113,15 @@ def translate_nl_to_primo(nl_query):
 
     prompt = f"Translate this user query into a Primo search JSON:\nUser query:\n{nl_query}\n\nReturn only JSON."
 
-    resp = openai.ChatCompletion.create(
-        model=OPENAI_MODEL,
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": prompt}
-        ],
-        max_tokens=400,
-        temperature=0.0,
-    )
+    resp = client.chat.completions.create(model=OPENAI_MODEL,
+    messages=[
+        {"role": "system", "content": system},
+        {"role": "user", "content": prompt}
+    ],
+    max_tokens=400,
+    temperature=0.0)
 
-    text = resp['choices'][0]['message']['content'].strip()
+    text = resp.choices[0].message.content.strip()
     # Try to parse JSON from the model output
     try:
         parsed = json.loads(text)
@@ -230,17 +228,15 @@ def summarize_results(nl_query, items):
         + "\n".join(text_items[:10])
     )
 
-    resp = openai.ChatCompletion.create(
-        model=OPENAI_MODEL,
-        messages=[
-            {"role": "system", "content": "You are a helpful academic research assistant."},
-            {"role": "user", "content": prompt}
-        ],
-        max_tokens=400,
-        temperature=0.2,
-    )
+    resp = client.chat.completions.create(model=OPENAI_MODEL,
+    messages=[
+        {"role": "system", "content": "You are a helpful academic research assistant."},
+        {"role": "user", "content": prompt}
+    ],
+    max_tokens=400,
+    temperature=0.2)
 
-    return resp['choices'][0]['message']['content'].strip()
+    return resp.choices[0].message.content.strip()
 
 
 # ---------- Flask routes ----------
