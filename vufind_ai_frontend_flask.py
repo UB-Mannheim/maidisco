@@ -3,7 +3,9 @@
 from flask import Flask, render_template_string, request
 import os
 import requests
-import openai
+from openai import OpenAI
+
+client = OpenAI(api_key=OPENAI_API_KEY)
 import json
 import markdown
 from markupsafe import Markup
@@ -22,7 +24,6 @@ VUFIND_SEARCH_ENDPOINT = os.environ.get(
 if not OPENAI_API_KEY:
     raise RuntimeError("OPENAI_API_KEY environment variable is required")
 
-openai.api_key = OPENAI_API_KEY
 
 app = Flask(__name__)
 
@@ -114,14 +115,12 @@ def translate_nl_to_vufind(nl_query):
         "'type' (optional), 'filters' (dict: language, year_from, year_to, material_type)."
     )
     prompt = f"Convert this user query into VuFind JSON:\n{nl_query}\nReturn only JSON."
-    resp = openai.ChatCompletion.create(
-        model=OPENAI_MODEL,
-        messages=[{"role":"system","content":system},{"role":"user","content":prompt}],
-        max_tokens=400,
-        temperature=0.0,
-        timeout=60
-    )
-    text = resp['choices'][0]['message']['content'].strip()
+    resp = client.chat.completions.create(model=OPENAI_MODEL,
+    messages=[{"role":"system","content":system},{"role":"user","content":prompt}],
+    max_tokens=400,
+    temperature=0.0,
+    timeout=60)
+    text = resp.choices[0].message.content.strip()
     # Strip Markdown code fences
     text = re.sub(r'^```(?:json)?\s*', '', text)
     text = re.sub(r'\s*```$', '', text)
@@ -179,15 +178,13 @@ def summarize_results(nl_query, items):
         "and suggest 2 follow-up search queries.\n\n" +
         "\n".join(text_items[:10])
     )
-    resp = openai.ChatCompletion.create(
-        model=OPENAI_MODEL,
-        messages=[{"role":"system","content":"You are a helpful academic assistant."},
-                  {"role":"user","content":prompt}],
-        max_tokens=1200,
-        temperature=0.2,
-        timeout=120
-    )
-    summary = resp['choices'][0]['message']['content'].strip()
+    resp = client.chat.completions.create(model=OPENAI_MODEL,
+    messages=[{"role":"system","content":"You are a helpful academic assistant."},
+              {"role":"user","content":prompt}],
+    max_tokens=1200,
+    temperature=0.2,
+    timeout=120)
+    summary = resp.choices[0].message.content.strip()
     return Markup(markdown.markdown(summary))
 
 # --- Flask routes ---
