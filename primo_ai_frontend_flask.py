@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # primo_ai_frontend.py
 """
 Flask web app: Natural-language -> Primo search -> summarize results with AI
@@ -31,6 +33,9 @@ import requests
 import openai
 import json
 from urllib.parse import urlencode
+
+from dotenv import load_dotenv
+load_dotenv()
 
 # ---------- Configuration (via env vars) ----------
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
@@ -290,19 +295,3 @@ def search():
 # ---------- Standalone run ----------
 if __name__ == '__main__':
     app.run(debug=True, host='127.0.0.1', port=5000)
-
-
-# --------- requirements.txt (save separately) ----------
-# Flask
-# requests
-# openai
-# python-dotenv
-
-
-# --------- .env example ----------
-# OPENAI_API_KEY=sk-...
-# OPENAI_MODEL=gpt-4
-# PRIMO_SEARCH_ENDPOINT=https://primo.bib.uni-mannheim.de/primo-explore/ws/v1/search
-# PRIMO_API_KEY=optional
-# PRIMO_INSTITUTION=MAN
-
