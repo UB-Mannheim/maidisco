@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from flask import Flask, render_template_string, request
 import os
 import requests
@@ -5,12 +7,12 @@ import openai
 import json
 import markdown
 from markupsafe import Markup
-
-# Load environment variables if using .env
 from dotenv import load_dotenv
+import re
+
 load_dotenv()
 
-# Configuration
+# --- Configuration ---
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4")
 VUFIND_SEARCH_ENDPOINT = os.environ.get(
@@ -24,7 +26,7 @@ openai.api_key = OPENAI_API_KEY
 
 app = Flask(__name__)
 
-# Simple template
+# --- HTML Template ---
 INDEX_HTML = """
 <!doctype html>
 <html>
@@ -33,10 +35,11 @@ INDEX_HTML = """
 <title>VuFind AI Search</title>
 <style>
 body { font-family: Arial; margin: 2rem; }
-input, textarea { width: 100%; padding: 0.5rem; margin-bottom: 0.5rem; }
+input, select, textarea { width: 100%; padding: 0.5rem; margin-bottom: 0.5rem; }
+button { padding: 0.5rem 1rem; }
 .result { border: 1px solid #ddd; padding: 0.75rem; margin-bottom: 0.5rem; border-radius: 6px; }
 .meta { color: #666; font-size: 0.9rem; }
-.summ { background: #f7f7f9; padding: 0.75rem; border-radius: 6px; }
+.summ { background: #f7f7f9; padding: 0.75rem; border-radius: 6px; margin-top: 1rem; }
 </style>
 </head>
 <body>
@@ -44,6 +47,29 @@ input, textarea { width: 100%; padding: 0.5rem; margin-bottom: 0.5rem; }
 <form method="post" action="/search">
 <label for="nl">Search (natural language)</label>
 <textarea id="nl" name="nl" rows="3">{{example}}</textarea>
+
+<label for="language">Language</label>
+<select id="language" name="language">
+  <option value="">Any</option>
+  <option value="English">English</option>
+  <option value="German">German</option>
+  <option value="French">French</option>
+</select>
+
+<label for="material_type">Material type</label>
+<select id="material_type" name="material_type">
+  <option value="">Any</option>
+  <option value="Books">Books</option>
+  <option value="Articles">Articles</option>
+  <option value="Theses">Theses</option>
+</select>
+
+<label for="year_from">Year from</label>
+<input type="number" id="year_from" name="year_from" placeholder="e.g., 2019">
+
+<label for="year_to">Year to</label>
+<input type="number" id="year_to" name="year_to" placeholder="e.g., 2024">
+
 <button type="submit">Search</button>
 </form>
 
@@ -51,6 +77,14 @@ input, textarea { width: 100%; padding: 0.5rem; margin-bottom: 0.5rem; }
 <h2>Query: <em>{{query}}</em></h2>
 <h3>AI -> VuFind translated query</h3>
 <pre>{{translated}}</pre>
+
+{% if filters %}
+<div><strong>Applied facets:</strong> 
+{% for k,v in filters.items() if v %}
+  {{k}} = {{v}}{% if not loop.last %}, {% endif %}
+{% endfor %}
+</div>
+{% endif %}
 
 <h3>Search results ({{results|length}})</h3>
 {% for r in results %}
@@ -88,8 +122,7 @@ def translate_nl_to_vufind(nl_query):
         timeout=60
     )
     text = resp['choices'][0]['message']['content'].strip()
-    # strip code fences if present
-    import re
+    # Strip Markdown code fences
     text = re.sub(r'^```(?:json)?\s*', '', text)
     text = re.sub(r'\s*```$', '', text)
     try:
@@ -99,27 +132,26 @@ def translate_nl_to_vufind(nl_query):
 
 def call_vufind_search(params):
     """
-    Call VuFind REST API
+    Call VuFind REST API with filters
     """
-    # VuFind accepts GET parameters like 'lookfor', 'type', 'limit', 'filter[]'
     query_params = {"lookfor": params.get("lookfor",""), "limit": 10}
-    filters = params.get("filters",{})
-    if filters.get("language"):
-        query_params["filter[]"] = f"language::{filters['language']}"
-    if filters.get("year_from") or filters.get("year_to"):
-        yr_from = filters.get("year_from", "")
-        yr_to = filters.get("year_to", "")
-        query_params["filter[]"] = f"year::{yr_from}-{yr_to}"
-    if filters.get("material_type"):
-        query_params["filter[]"] = f"type::{filters['material_type']}"
+    filters = params.get("filters", {})
+    query_params["filter[]"] = []
+    if "language" in filters and filters["language"]:
+        query_params["filter[]"].append(f"language::{filters['language']}")
+    if "material_type" in filters and filters["material_type"]:
+        query_params["filter[]"].append(f"type::{filters['material_type']}")
+    if ("year_from" in filters and filters["year_from"]) or ("year_to" in filters and filters["year_to"]):
+        yf = filters.get("year_from","")
+        yt = filters.get("year_to","")
+        query_params["filter[]"].append(f"year::{yf}-{yt}")
     r = requests.get(VUFIND_SEARCH_ENDPOINT, params=query_params, timeout=15)
     r.raise_for_status()
     return r.json()
 
 def normalize_vufind_json(raw_json, max_items=10):
     """
-    Normalize VuFind API JSON to a simple list of dicts
-    Each dict: title, authors, year, format, snippet, link
+    Normalize VuFind API JSON to list of dicts: title, authors, year, format, snippet, link
     """
     results = []
     records = raw_json.get("records", [])
@@ -169,11 +201,40 @@ def search():
     nl = request.form.get("nl","").strip()
     if not nl:
         return index()
+
+    # --- User-selected facets ---
+    filters = {}
+    language = request.form.get("language","").strip()
+    material_type = request.form.get("material_type","").strip()
+    year_from = request.form.get("year_from","").strip()
+    year_to = request.form.get("year_to","").strip()
+    if language: filters["language"] = language
+    if material_type: filters["material_type"] = material_type
+    if year_from: filters["year_from"] = year_from
+    if year_to: filters["year_to"] = year_to
+
+    # --- AI translation ---
     translated = translate_nl_to_vufind(nl)
+    # Merge user facets (override AI)
+    translated_filters = translated.get("filters", {})
+    translated_filters.update(filters)
+    translated["filters"] = translated_filters
+
+    # --- VuFind search ---
     raw = call_vufind_search(translated)
     results = normalize_vufind_json(raw)
+
+    # --- AI summary ---
     summary_html = summarize_results(nl, results)
-    return render_template_string(INDEX_HTML, query=nl, translated=json.dumps(translated, indent=2), results=results, summary_html=summary_html)
+
+    return render_template_string(
+        INDEX_HTML,
+        query=nl,
+        translated=json.dumps(translated, indent=2),
+        results=results,
+        summary_html=summary_html,
+        filters=translated_filters
+    )
 
 # --- Run app ---
 if __name__ == "__main__":
