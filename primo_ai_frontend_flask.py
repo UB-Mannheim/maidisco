@@ -17,7 +17,7 @@ Usage:
 Notes / Configuration
  - This is a minimal, opinionated prototype meant to be adapted to your Primo instance.
  - Set PRIMO_SEARCH_ENDPOINT to the Primo REST endpoint that returns JSON (PNX or other JSON).
-   If your institution requires API keys, set PRIMO_API_KEY. If the Primo instance uses a cookie/session for auth
+   If your institution requires API keys, set PRIMO_APIKEY. If the Primo instance uses a cookie/session for auth
    (e.g. Shibboleth), prefer the browser-extension approach or a proxy that attaches the user's session cookie.
  - OPENAI_API_KEY must be set. Optionally set OPENAI_MODEL (default: gpt-4).
 
@@ -29,6 +29,9 @@ Security
 
 from flask import Flask, render_template_string, request, redirect, url_for, jsonify
 import os
+import re
+import markdown
+from markupsafe import Markup
 import requests
 import json
 from openai import OpenAI
@@ -39,15 +42,21 @@ load_dotenv()
 
 # ---------- Configuration (via env vars) ----------
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+OPENAI_API_URL = os.environ.get("OPENAI_API_URL")
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4")
 PRIMO_SEARCH_ENDPOINT = os.environ.get("PRIMO_SEARCH_ENDPOINT", "https://your-primo-instance.example.com/primo-explore/ws/v1/search")
-PRIMO_API_KEY = os.environ.get("PRIMO_API_KEY")  # optional
-PRIMO_INSTITUTION = os.environ.get("PRIMO_INSTITUTION")  # optional, e.g. 'MAN'
+PRIMO_APIKEY = os.environ.get("PRIMO_APIKEY")  # optional
+PRIMO_SCOPE = os.environ.get("PRIMO_SCOPE")
+PRIMO_TAB = os.environ.get("PRIMO_TAB")
+PRIMO_VID = os.environ.get("PRIMO_VID")
 
 if not OPENAI_API_KEY:
     raise RuntimeError("OPENAI_API_KEY environment variable is required")
 
-client = OpenAI(api_key=OPENAI_API_KEY)
+client = OpenAI(
+    base_url=OPENAI_API_URL,
+    api_key=OPENAI_API_KEY  # Required but unused
+)
 
 app = Flask(__name__)
 
@@ -90,7 +99,7 @@ INDEX_HTML = """
       {% endfor %}
 
       <h3>AI Summary</h3>
-      <div class="summ">{{summary}}</div>
+      <div class="summ">{{summary_html}}</div>
     {% endif %}
 
     <hr />
@@ -122,6 +131,8 @@ def translate_nl_to_primo(nl_query):
     temperature=0.0)
 
     text = resp.choices[0].message.content.strip()
+    text = re.sub(r'^```(?:json)?\s*', '', text)
+    text = re.sub(r'\s*```$', '', text)
     # Try to parse JSON from the model output
     try:
         parsed = json.loads(text)
@@ -141,8 +152,8 @@ def call_primo_search(params):
     Adapt this for the exact Primo REST you have (PNX, Alma/Primo APIs differ).
     """
     headers = {"Accept": "application/json"}
-    if PRIMO_API_KEY:
-        headers['Authorization'] = f"apikey {PRIMO_API_KEY}"
+    #if PRIMO_APIKEY:
+    #    headers['Authorization'] = f"apikey {PRIMO_APIKEY}"
 
     try:
         r = requests.get(PRIMO_SEARCH_ENDPOINT, params=params, headers=headers, timeout=15)
@@ -183,20 +194,42 @@ def normalize_primo_json(raw_json, max_items=10):
         return results
 
     for doc in docs[:max_items]:
-        title = doc.get('title') or doc.get('title_display') or doc.get('recordTitle') or None
-        # authors often in 'creator' or 'author'
-        authors = None
-        if isinstance(doc.get('creator'), list):
-            authors = ", ".join(doc.get('creator'))
-        else:
-            authors = doc.get('creator') or doc.get('author') or None
+        pnx = doc['pnx']
 
-        year = doc.get('date') or doc.get('year') or None
-        fmt = doc.get('type') or doc.get('materialType') or doc.get('format') or None
-        snippet = doc.get('snippet') or doc.get('description') or None
-        link = doc.get('link') or doc.get('record_link') or doc.get('pnx', {}).get('control', {}).get('recordid') if isinstance(doc, dict) else None
+         # Title
+        title = ''
+        if 'display' in pnx and 'title' in pnx['display']:
+            title = pnx['display']['title'][0] if pnx['display']['title'] else ''
 
-        # If link is a record id only, we leave it as-is; the UI should make it clickable by constructing an openURL if possible.
+        # Authors / contributors
+        authors = ''
+        if 'display' in pnx and 'contributor' in pnx['display']:
+            authors = ', '.join(pnx['display']['contributor']) if pnx['display']['contributor'] else ''
+
+        # Year / creationdate
+        year = ''
+        if 'display' in pnx and 'creationdate' in pnx['display']:
+            year = pnx['display']['creationdate'][0] if pnx['display']['creationdate'] else ''
+        elif 'addata' in pnx and 'date' in pnx['addata']:
+            year = pnx['addata']['date'][0] if pnx['addata']['date'] else ''
+
+        # Format / material type
+        fmt = ''
+        if 'display' in pnx and 'format' in pnx['display']:
+            fmt = pnx['display']['format'][0] if pnx['display']['format'] else ''
+
+        # Snippet / description
+        snippet = ''
+        if 'display' in pnx and 'description' in pnx['display']:
+            snippet = ' '.join(pnx['display']['description']) if pnx['display']['description'] else ''
+        elif 'addata' in pnx and 'abstract' in pnx['addata']:
+            snippet = ' '.join(pnx['addata']['abstract']) if pnx['addata']['abstract'] else ''
+
+        # Link (use openURL if available)
+        link = '#'
+        if 'links' in pnx and 'openurl' in pnx['links']:
+            link = pnx['links']['openurl'][0] if pnx['links']['openurl'] else '#'
+
         results.append({
             'title': title or 'No title',
             'authors': authors or '',
@@ -233,7 +266,8 @@ def summarize_results(nl_query, items):
         {"role": "system", "content": "You are a helpful academic research assistant."},
         {"role": "user", "content": prompt}
     ],
-    max_tokens=400,
+    timeout=30,
+    max_tokens=8192,
     temperature=0.2)
 
     return resp.choices[0].message.content.strip()
@@ -260,8 +294,9 @@ def search():
     params = {}
     q = translated.get('q') if isinstance(translated, dict) else None
     if q:
-        params['query'] = q
+        params['q'] = f'any,contains,{q}'
     # Map common filters
+    '''
     filters = translated.get('filters', {}) if isinstance(translated, dict) else {}
     if filters.get('year_from') and filters.get('year_to'):
         params['fromYear'] = filters['year_from']
@@ -270,12 +305,23 @@ def search():
         params['lang'] = filters['language']
     if filters.get('material_type'):
         params['materialType'] = filters['material_type']
+    '''
 
-    # Institution param
-    if PRIMO_INSTITUTION:
-        params['institution'] = PRIMO_INSTITUTION
+    if PRIMO_APIKEY:
+        params['apikey'] = PRIMO_APIKEY
+
+    if PRIMO_SCOPE:
+        params['scope'] = PRIMO_SCOPE
+
+    if PRIMO_TAB:
+        params['tab'] = PRIMO_TAB
+
+    if PRIMO_VID:
+        params['vid'] = PRIMO_VID
 
     # 3) Call Primo
+    # https://api-eu.hosted.exlibrisgroup.com/primo/v1/search?apikey=l8xxfb6992feb2b44a52b43c807c3da62d1a&q=any,contains,climate%20resilience%20in%20urban%20planning&tab=default_tab&scope=MAN_ALMA&vid=MAN_UB
+    # search_url = "https://api-eu.hosted.exlibrisgroup.com/primo/v1/search?vid={{INSTCODE}}&tab=man_all&scope=MAN_GESAMT&apikey=l8xxfb6992feb2b44a52b43c80
     raw = call_primo_search(params)
     items = []
     if isinstance(raw, dict) and raw.get('error'):
@@ -285,9 +331,10 @@ def search():
         # 4) Summarize
         summary = summarize_results(nl, items)
 
-    return render_template_string(INDEX_HTML, query=nl, translated=json.dumps(translated, indent=2), results=items, summary=summary)
+    summary_html = Markup(markdown.markdown(summary))
+    return render_template_string(INDEX_HTML, query=nl, translated=json.dumps(translated, indent=2), results=items, summary_html=summary_html)
 
 
 # ---------- Standalone run ----------
 if __name__ == '__main__':
-    app.run(debug=True, host='127.0.0.1', port=5000)
+    app.run(debug=True, host='127.0.0.1', port=5555)
