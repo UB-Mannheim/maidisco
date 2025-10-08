@@ -43,9 +43,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ---------- Configuration (via env vars) ----------
+DEBUGMODE = os.environ.get("DEBUGMODE", False)
+HOST = os.environ.get("HOST", "127.0.0.1")
+PORT = os.environ.get("PORT", "5555")
+
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 OPENAI_API_URL = os.environ.get("OPENAI_API_URL")
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4")
+
 PRIMO_SEARCH_ENDPOINT = os.environ.get("PRIMO_SEARCH_ENDPOINT", "https://your-primo-instance.example.com/primo-explore/ws/v1/search")
 PRIMO_APIKEY = os.environ.get("PRIMO_APIKEY")  # optional
 PRIMO_SCOPE = os.environ.get("PRIMO_SCOPE")
@@ -339,4 +344,4 @@ def search():
 
 # ---------- Standalone run ----------
 if __name__ == '__main__':
-    app.run(debug=True, host='127.0.0.1', port=5555)
+    app.run(debug=DEBUGMODE, host=HOST, port=PORT)

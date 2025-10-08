@@ -14,6 +14,10 @@ import re
 load_dotenv()
 
 # --- Configuration ---
+DEBUGMODE = os.environ.get("DEBUGMODE", False)
+HOST = os.environ.get("HOST", "127.0.0.1")
+PORT = os.environ.get("PORT", "5001")
+
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 OPENAI_API_URL = os.environ.get("OPENAI_API_URL")
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4")
@@ -239,4 +243,4 @@ def search():
 
 # --- Run app ---
 if __name__ == "__main__":
-    app.run(debug=True, host="127.0.0.1", port=5001)
+    app.run(debug=DEBUGMODE, host=HOST, port=PORT)
