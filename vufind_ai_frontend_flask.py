@@ -5,7 +5,6 @@ import os
 import requests
 from openai import OpenAI
 
-client = OpenAI(api_key=OPENAI_API_KEY)
 import json
 import markdown
 from markupsafe import Markup
@@ -16,6 +15,7 @@ load_dotenv()
 
 # --- Configuration ---
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+OPENAI_API_URL = os.environ.get("OPENAI_API_URL")
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4")
 VUFIND_SEARCH_ENDPOINT = os.environ.get(
     "VUFIND_SEARCH_ENDPOINT", "https://your-vufind-instance.example.com/api/search"
@@ -24,6 +24,10 @@ VUFIND_SEARCH_ENDPOINT = os.environ.get(
 if not OPENAI_API_KEY:
     raise RuntimeError("OPENAI_API_KEY environment variable is required")
 
+client = OpenAI(
+    base_url=OPENAI_API_URL,
+    api_key=OPENAI_API_KEY  # Required but unused
+)
 
 app = Flask(__name__)
 
@@ -137,13 +141,13 @@ def call_vufind_search(params):
     filters = params.get("filters", {})
     query_params["filter[]"] = []
     if "language" in filters and filters["language"]:
-        query_params["filter[]"].append(f"language::{filters['language']}")
+        query_params["filter[]"].append(f"language:\"{filters['language']}\"")
     if "material_type" in filters and filters["material_type"]:
-        query_params["filter[]"].append(f"type::{filters['material_type']}")
+        query_params["filter[]"].append(f"type:\"{filters['material_type']}\"")
     if ("year_from" in filters and filters["year_from"]) or ("year_to" in filters and filters["year_to"]):
         yf = filters.get("year_from","")
         yt = filters.get("year_to","")
-        query_params["filter[]"].append(f"year::{yf}-{yt}")
+        # query_params["filter[]"].append(f"year:\"{yf}-{yt}\"")
     r = requests.get(VUFIND_SEARCH_ENDPOINT, params=query_params, timeout=15)
     r.raise_for_status()
     return r.json()
