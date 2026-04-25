@@ -28,10 +28,7 @@ VUFIND_SEARCH_ENDPOINT = os.environ.get(
 if not OPENAI_API_KEY:
     raise RuntimeError("OPENAI_API_KEY environment variable is required")
 
-client = OpenAI(
-    base_url=OPENAI_API_URL,
-    api_key=OPENAI_API_KEY  # Required but unused
-)
+client = OpenAI(base_url=OPENAI_API_URL, api_key=OPENAI_API_KEY)  # Required but unused
 
 app = Flask(__name__)
 
@@ -113,6 +110,7 @@ button { padding: 0.5rem 1rem; }
 
 # --- Helpers ---
 
+
 def translate_nl_to_vufind(nl_query):
     """
     Convert natural language query to VuFind parameters via OpenAI
@@ -123,38 +121,47 @@ def translate_nl_to_vufind(nl_query):
         "'type' (optional), 'filters' (dict: language, year_from, year_to, material_type)."
     )
     prompt = f"Convert this user query into VuFind JSON:\n{nl_query}\nReturn only JSON."
-    resp = client.chat.completions.create(model=OPENAI_MODEL,
-    messages=[{"role":"system","content":system},{"role":"user","content":prompt}],
-    max_tokens=400,
-    temperature=0.0,
-    timeout=60)
+    resp = client.chat.completions.create(
+        model=OPENAI_MODEL,
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": prompt},
+        ],
+        max_tokens=400,
+        temperature=0.0,
+        timeout=60,
+    )
     text = resp.choices[0].message.content.strip()
     # Strip Markdown code fences
-    text = re.sub(r'^```(?:json)?\s*', '', text)
-    text = re.sub(r'\s*```$', '', text)
+    text = re.sub(r"^```(?:json)?\s*", "", text)
+    text = re.sub(r"\s*```$", "", text)
     try:
         return json.loads(text)
     except Exception:
         return {"lookfor": nl_query}
 
+
 def call_vufind_search(params):
     """
     Call VuFind REST API with filters
     """
-    query_params = {"lookfor": params.get("lookfor",""), "limit": 10}
+    query_params = {"lookfor": params.get("lookfor", ""), "limit": 10}
     filters = params.get("filters", {})
     query_params["filter[]"] = []
     if "language" in filters and filters["language"]:
         query_params["filter[]"].append(f"language:\"{filters['language']}\"")
     if "material_type" in filters and filters["material_type"]:
         query_params["filter[]"].append(f"type:\"{filters['material_type']}\"")
-    if ("year_from" in filters and filters["year_from"]) or ("year_to" in filters and filters["year_to"]):
-        yf = filters.get("year_from","")
-        yt = filters.get("year_to","")
+    if ("year_from" in filters and filters["year_from"]) or (
+        "year_to" in filters and filters["year_to"]
+    ):
+        yf = filters.get("year_from", "")
+        yt = filters.get("year_to", "")
         # query_params["filter[]"].append(f"year:\"{yf}-{yt}\"")
     r = requests.get(VUFIND_SEARCH_ENDPOINT, params=query_params, timeout=15)
     r.raise_for_status()
     return r.json()
+
 
 def normalize_vufind_json(raw_json, max_items=10):
     """
@@ -163,60 +170,83 @@ def normalize_vufind_json(raw_json, max_items=10):
     results = []
     records = raw_json.get("records", [])
     for rec in records[:max_items]:
-        results.append({
-            "title": rec.get("title","No title"),
-            "authors": ", ".join(rec.get("author", [])) if isinstance(rec.get("author"), list) else rec.get("author",""),
-            "year": rec.get("date",""),
-            "format": rec.get("format",""),
-            "snippet": rec.get("description",""),
-            "link": rec.get("url","#")
-        })
+        results.append(
+            {
+                "title": rec.get("title", "No title"),
+                "authors": (
+                    ", ".join(rec.get("author", []))
+                    if isinstance(rec.get("author"), list)
+                    else rec.get("author", "")
+                ),
+                "year": rec.get("date", ""),
+                "format": rec.get("format", ""),
+                "snippet": rec.get("description", ""),
+                "link": rec.get("url", "#"),
+            }
+        )
     return results
+
 
 def summarize_results(nl_query, items):
     if not items:
         return "No results to summarize."
     text_items = []
     for i, it in enumerate(items, start=1):
-        text_items.append(f"{i}. {it['title']} — {it['authors']} ({it['year']}) — {it['snippet']}")
+        text_items.append(
+            f"{i}. {it['title']} — {it['authors']} ({it['year']}) — {it['snippet']}"
+        )
     prompt = (
         f"You are a research assistant. The user asked: {nl_query}\n\n"
         "Below are search results from a VuFind catalog. "
         "Provide a concise summary (3-6 sentences), highlight relevant items, "
-        "and suggest 2 follow-up search queries.\n\n" +
-        "\n".join(text_items[:10])
+        "and suggest 2 follow-up search queries.\n\n" + "\n".join(text_items[:10])
     )
-    resp = client.chat.completions.create(model=OPENAI_MODEL,
-    messages=[{"role":"system","content":"You are a helpful academic assistant."},
-              {"role":"user","content":prompt}],
-    max_tokens=1200,
-    temperature=0.2,
-    timeout=120)
+    resp = client.chat.completions.create(
+        model=OPENAI_MODEL,
+        messages=[
+            {"role": "system", "content": "You are a helpful academic assistant."},
+            {"role": "user", "content": prompt},
+        ],
+        max_tokens=1200,
+        temperature=0.2,
+        timeout=120,
+    )
     summary = resp.choices[0].message.content.strip()
     return Markup(markdown.markdown(summary))
 
+
 # --- Flask routes ---
+
 
 @app.route("/", methods=["GET"])
 def index():
-    return render_template_string(INDEX_HTML, example="Recent articles on climate resilience in urban planning, English, peer-reviewed", query=None)
+    return render_template_string(
+        INDEX_HTML,
+        example="Recent articles on climate resilience in urban planning, English, peer-reviewed",
+        query=None,
+    )
+
 
 @app.route("/search", methods=["POST"])
 def search():
-    nl = request.form.get("nl","").strip()
+    nl = request.form.get("nl", "").strip()
     if not nl:
         return index()
 
     # --- User-selected facets ---
     filters = {}
-    language = request.form.get("language","").strip()
-    material_type = request.form.get("material_type","").strip()
-    year_from = request.form.get("year_from","").strip()
-    year_to = request.form.get("year_to","").strip()
-    if language: filters["language"] = language
-    if material_type: filters["material_type"] = material_type
-    if year_from: filters["year_from"] = year_from
-    if year_to: filters["year_to"] = year_to
+    language = request.form.get("language", "").strip()
+    material_type = request.form.get("material_type", "").strip()
+    year_from = request.form.get("year_from", "").strip()
+    year_to = request.form.get("year_to", "").strip()
+    if language:
+        filters["language"] = language
+    if material_type:
+        filters["material_type"] = material_type
+    if year_from:
+        filters["year_from"] = year_from
+    if year_to:
+        filters["year_to"] = year_to
 
     # --- AI translation ---
     translated = translate_nl_to_vufind(nl)
@@ -238,8 +268,9 @@ def search():
         translated=json.dumps(translated, indent=2),
         results=results,
         summary_html=summary_html,
-        filters=translated_filters
+        filters=translated_filters,
     )
+
 
 # --- Run app ---
 if __name__ == "__main__":
