@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 
-from flask import Flask, render_template_string, request
-import os
-import requests
-from openai import OpenAI
-
 import json
-import markdown
-from markupsafe import Markup
-from dotenv import load_dotenv
+import os
 import re
+
+import markdown
+import requests
+from dotenv import load_dotenv
+from flask import Flask, render_template_string, request
+from markupsafe import Markup
+from openai import OpenAI
 
 load_dotenv()
 

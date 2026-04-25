@@ -29,17 +29,17 @@ Security
 
 """
 
-from flask import Flask, render_template_string, request, redirect, url_for, jsonify
+import json
 import os
 import re
-import markdown
-from markupsafe import Markup
-import requests
-import json
-from openai import OpenAI
 from urllib.parse import urlencode
 
+import markdown
+import requests
 from dotenv import load_dotenv
+from flask import Flask, jsonify, redirect, render_template_string, request, url_for
+from markupsafe import Markup
+from openai import OpenAI
 
 load_dotenv()
 
