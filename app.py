@@ -202,6 +202,7 @@ def index():
         query=None,
         error=None,
         system_name=system_name,
+        search_class_label="",
         show_filters="vufind" in systems,
         format_facets=format_facets,
         matomo_url=MATOMO_URL,
@@ -223,6 +224,7 @@ def search():
             query=nl,
             error="Kein Discovery-System konfiguriert.",
             system_name=None,
+            search_class_label="",
             show_filters=False,
             format_facets=[],
             matomo_url=MATOMO_URL,
@@ -275,10 +277,19 @@ def search():
     if isinstance(raw, dict) and raw.get("error"):
         error = raw["error"]
     else:
-        results = system.normalize_results(raw)
+        search_class = translated.get("search_class", "catalog")
+        results = system.normalize_results(raw, search_class=search_class)
         summary_html, follow_up_queries = system.summarize_results(nl, results)
         if system.name == "vufind":
             filters = params.get("filters", {})
+
+    search_class = translated.get("search_class", "catalog")
+    search_class_labels = {
+        "catalog": "Bestand",
+        "authority": "Normdaten",
+        "web": "Webseiten",
+    }
+    search_class_label = search_class_labels.get(search_class, search_class)
 
     format_facets = []
     if system.name == "vufind":
@@ -294,7 +305,8 @@ def search():
         filters=filters,
         error=error,
         system_name=system.name.upper(),
-        show_filters=system.name == "vufind",
+        search_class_label=search_class_label,
+        show_filters=system.name == "vufind" and search_class == "catalog",
         format_facets=format_facets,
         matomo_url=MATOMO_URL,
         matomo_site_id=MATOMO_SITE_ID,
