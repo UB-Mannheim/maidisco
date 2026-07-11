@@ -19,22 +19,52 @@ pip install -U pip -r requirements.txt
 Copy the file `sample.env` to `.env` and provide your local settings
 in the `.env` file.
 
-Then, start one or both of the provided web applications:
+Then, start the web application:
 
 ```shell
-# Run web application for Primo search with AI support.
-./primo_ai_frontend_flask.py
-
-# Run web application for VuFind search with AI support.
-./vufind_ai_frontend_flask.py
+# Run web application (supports both VuFind and Primo).
+./app.py
 ```
 
 ## Usage
 
-Connect to the running web application in your browser.
+Connect to the running web application in your browser:
 
-- URL for Primo search: http://localhost:5555/
-- URL for VuFind search: http://localhost:5001/
+- URL: http://localhost:5001/
+
+The application automatically detects which discovery system to use:
+
+- **VuFind** is used by default if `VUFIND_SEARCH_ENDPOINT` is configured
+- **Primo** is used if `PRIMO_SEARCH_ENDPOINT` is configured and VuFind is not
+- **Primo** can be forced by including "primo" (case-insensitive) in the search query
+
+## Configuration
+
+Key environment variables in `.env`:
+
+| Variable | Description |
+|----------|-------------|
+| `OPENAI_API_KEY` | API key for OpenAI-compatible LLM (required) |
+| `OPENAI_API_URL` | Base URL for the LLM API (e.g., `http://localhost:11434/v1` for Ollama) |
+| `OPENAI_MODEL` | Model name to use (default: `gpt-4`) |
+| `VUFIND_SEARCH_ENDPOINT` | VuFind API search endpoint URL |
+| `PRIMO_SEARCH_ENDPOINT` | Primo API search endpoint URL |
+| `PRIMO_APIKEY` | Primo API key (optional) |
+| `PRIMO_SCOPE` | Primo scope parameter |
+| `PRIMO_TAB` | Primo tab parameter |
+| `PRIMO_VID` | Primo view ID |
+| `HOST` | Server host (default: `127.0.0.1`) |
+| `PORT` | Server port (default: `5001`) |
+| `DEBUGMODE` | Enable Flask debug mode (default: `False`) |
+
+## Security
+
+- CSRF protection via Sec-Fetch-Site header validation
+- Rate limiting: 30 POST requests per minute per IP
+- HTML sanitization in LLM summaries (XSS prevention)
+- URL validation (blocks `javascript:` and other dangerous schemes)
+- SSRF prevention (validates endpoint URLs at startup)
+- Structured LLM prompts to mitigate prompt injection attacks
 
 ## Notice
 

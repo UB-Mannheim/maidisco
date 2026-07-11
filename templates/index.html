@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>maidisco — AI Search</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 2rem; }
+input, select, textarea { width: 100%; padding: 0.5rem; margin-bottom: 0.5rem; }
+button { padding: 0.5rem 1rem; }
+.result { border: 1px solid #ddd; padding: 0.75rem; margin-bottom: 0.5rem; border-radius: 6px; }
+.meta { color: #666; font-size: 0.9rem; }
+.summ { background: #f7f7f9; padding: 0.75rem; border-radius: 6px; margin-top: 1rem; }
+.error-box { background:#fff3cd; border:1px solid #ffc107; padding:1rem; border-radius:6px; margin:1rem 0; }
+.error-box strong { color:#856404; }
+.error-box div { color:#856404; margin-top:0.5rem; }
+.system-info { color: #666; font-size: 0.9rem; margin-bottom: 1rem; }
+</style>
+</head>
+<body>
+<h1>maidisco — AI-powered Library Search</h1>
+<div class="system-info">System: <strong>{{ system_name|default("nicht konfiguriert") }}</strong></div>
+
+<form method="post" action="/search">
+<label for="nl">Search (natural language)</label>
+<textarea id="nl" name="nl" rows="3">{{ example }}</textarea>
+
+{% if show_filters %}
+<label for="language">Language</label>
+<select id="language" name="language">
+  <option value="">Any</option>
+  <option value="English">English</option>
+  <option value="German">German</option>
+  <option value="French">French</option>
+</select>
+
+<label for="material_type">Material type</label>
+<select id="material_type" name="material_type">
+  <option value="">Any</option>
+  <option value="Books">Books</option>
+  <option value="Articles">Articles</option>
+  <option value="Theses">Theses</option>
+</select>
+
+<label for="year_from">Year from</label>
+<input type="number" id="year_from" name="year_from" placeholder="e.g., 2019">
+
+<label for="year_to">Year to</label>
+<input type="number" id="year_to" name="year_to" placeholder="e.g., 2024">
+{% endif %}
+
+<button type="submit">Search</button>
+</form>
+
+{% if query %}
+<h2>Query: <em>{{ query }}</em></h2>
+
+<h3>AI → {{ system_name }} translated query</h3>
+<pre>{{ translated }}</pre>
+
+{% if filters %}
+<div><strong>Applied facets:</strong>
+{% for k,v in filters.items() if v %}
+  {{ k }} = {{ v }}{% if not loop.last %}, {% endif %}
+{% endfor %}
+</div>
+{% endif %}
+
+{% if error %}
+<div class="error-box">
+  <strong>Fehler bei der Suche:</strong>
+  <div>{{ error }}</div>
+</div>
+{% endif %}
+
+<h3>Search results ({{ results|length }})</h3>
+{% for r in results %}
+<div class="result">
+  <div><strong>{{ r.title }}</strong></div>
+  <div class="meta">{{ r.authors }} — {{ r.year }} — {{ r.format }} — <a href="{{ r.link }}" target="_blank">Open record</a></div>
+  {% if r.snippet %}<div style="margin-top:.5rem">{{ r.snippet }}</div>{% endif %}
+</div>
+{% endfor %}
+
+<h3>AI Summary</h3>
+<div class="summ">{{ summary_html }}</div>
+{% endif %}
+</body>
+</html>
