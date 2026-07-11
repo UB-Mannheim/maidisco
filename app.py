@@ -45,6 +45,9 @@ OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4")
 VUFIND_SEARCH_ENDPOINT = os.environ.get("VUFIND_SEARCH_ENDPOINT")
 PRIMO_SEARCH_ENDPOINT = os.environ.get("PRIMO_SEARCH_ENDPOINT")
 
+MATOMO_URL = os.environ.get("MATOMO_URL")
+MATOMO_SITE_ID = os.environ.get("MATOMO_SITE_ID")
+
 if not OPENAI_API_KEY:
     raise RuntimeError("OPENAI_API_KEY environment variable is required")
 
@@ -178,6 +181,8 @@ def index():
         error=None,
         system_name=system_name,
         show_filters="vufind" in systems,
+        matomo_url=MATOMO_URL,
+        matomo_site_id=MATOMO_SITE_ID,
     )
 
 
@@ -196,6 +201,8 @@ def search():
             error="Kein Discovery-System konfiguriert.",
             system_name=None,
             show_filters=False,
+            matomo_url=MATOMO_URL,
+            matomo_site_id=MATOMO_SITE_ID,
         )
 
     # Collect user filters (for systems that support them)
@@ -247,6 +254,8 @@ def search():
         error=error,
         system_name=system.name.upper(),
         show_filters=system.name == "vufind",
+        matomo_url=MATOMO_URL,
+        matomo_site_id=MATOMO_SITE_ID,
     )
 
 
