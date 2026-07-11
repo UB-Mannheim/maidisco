@@ -163,18 +163,39 @@ class VuFindSystem(DiscoverySystem):
         results = []
         records = raw_json.get("records", [])
         for rec in records[:max_items]:
+            # Authors: combine primary and secondary
+            authors = []
+            primary = rec.get("authors", {}).get("primary", {})
+            if isinstance(primary, dict):
+                authors.extend(primary.keys())
+            elif isinstance(primary, list):
+                authors.extend(primary)
+            secondary = rec.get("authors", {}).get("secondary", {})
+            if isinstance(secondary, dict):
+                authors.extend(secondary.keys())
+            elif isinstance(secondary, list):
+                authors.extend(secondary)
+
+            # Format: join list
+            formats = rec.get("formats", [])
+            fmt = ", ".join(formats) if isinstance(formats, list) else str(formats)
+
+            # Link: use first URL or construct Record link
+            urls = rec.get("urls", [])
+            link = ""
+            if urls and isinstance(urls, list) and urls[0].get("url"):
+                link = urls[0]["url"]
+            elif rec.get("id"):
+                link = f"{self.endpoint.rsplit('/api/', 1)[0]}/Record/{rec['id']}"
+
             results.append(
                 {
                     "title": rec.get("title", "No title"),
-                    "authors": (
-                        ", ".join(rec.get("author", []))
-                        if isinstance(rec.get("author"), list)
-                        else rec.get("author", "")
-                    ),
-                    "year": rec.get("date", ""),
-                    "format": rec.get("format", ""),
-                    "snippet": rec.get("description", ""),
-                    "link": self._safe_url(rec.get("url", "")),
+                    "authors": ", ".join(authors),
+                    "year": "",
+                    "format": fmt,
+                    "snippet": "",
+                    "link": self._safe_url(link),
                 }
             )
         return results
