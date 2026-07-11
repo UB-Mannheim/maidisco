@@ -5,6 +5,7 @@ import os
 import re
 
 import markdown
+import nh3
 import requests
 from dotenv import load_dotenv
 from flask import Flask, render_template_string, request
@@ -31,6 +32,29 @@ if not OPENAI_API_KEY:
 client = OpenAI(base_url=OPENAI_API_URL, api_key=OPENAI_API_KEY)  # Required but unused
 
 app = Flask(__name__)
+
+# --- HTML Sanitization ---
+# Markdown-relevant tags allowed in LLM summaries
+MD_ALLOWED_TAGS = {
+    "h1", "h2", "h3", "h4", "h5", "h6",
+    "p", "br", "hr",
+    "a", "img",
+    "ul", "ol", "li",
+    "blockquote",
+    "pre", "code",
+    "em", "strong", "b", "i", "u", "s", "del", "ins",
+    "table", "thead", "tbody", "tr", "th", "td",
+    "dl", "dt", "dd",
+    "sub", "sup",
+}
+
+MD_ALLOWED_ATTRIBUTES = {
+    "a": {"href", "title"},
+    "img": {"src", "alt", "title", "width", "height"},
+    "td": {"colspan", "rowspan"},
+    "th": {"colspan", "rowspan", "scope"},
+    "ol": {"start", "type"},
+}
 
 # --- HTML Template ---
 INDEX_HTML = """
@@ -271,7 +295,13 @@ def summarize_results(nl_query, items):
         timeout=120,
     )
     summary = resp.choices[0].message.content.strip()
-    return Markup(markdown.markdown(summary))
+    raw_html = markdown.markdown(summary)
+    safe_html = nh3.clean(
+        raw_html,
+        tags=MD_ALLOWED_TAGS,
+        attributes=MD_ALLOWED_ATTRIBUTES,
+    )
+    return Markup(safe_html)
 
 
 # --- Flask routes ---
