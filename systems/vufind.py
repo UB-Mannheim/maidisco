@@ -74,6 +74,9 @@ class VuFindSystem(DiscoverySystem):
         Returns dict with 'records' key on success, or dict with 'error' key on failure.
         """
         query_params = {"lookfor": params.get("lookfor", ""), "limit": 10}
+        search_type = params.get("type", "")
+        if search_type:
+            query_params["type"] = search_type
         filters = params.get("filters", {})
         query_params["filter[]"] = []
         if "language" in filters and filters["language"]:
