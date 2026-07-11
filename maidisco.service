@@ -12,6 +12,7 @@ ExecStart=/opt/maidisco/venv/bin/gunicorn \
     --bind 127.0.0.1:5001 \
     --workers 2 \
     --timeout 120 \
+    --env SCRIPT_NAME=/maidisco \
     app:app
 Restart=on-failure
 RestartSec=5

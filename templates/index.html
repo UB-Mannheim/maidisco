@@ -20,7 +20,7 @@ button { padding: 0.5rem 1rem; }
 <h1>maidisco — AI-powered Library Search</h1>
 <div class="system-info">System: <strong>{{ system_name|default("nicht konfiguriert") }}</strong></div>
 
-<form method="post" action="/search">
+<form method="post" action="{{ url_for('search') }}">
 <label for="nl">Search (natural language)</label>
 <textarea id="nl" name="nl" rows="3">{{ example }}</textarea>
 

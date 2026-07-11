@@ -65,6 +65,15 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now maidisco
 ```
 
+To serve under a subpath (e.g. `/maidisco`), set `APPLICATION_ROOT=/maidisco` in `.env`
+and configure the WSGI server accordingly. For gunicorn, the systemd service already
+passes `SCRIPT_NAME=/maidisco`. An Apache reverse proxy configuration:
+
+```apache
+ProxyPass /maidisco/ http://127.0.0.1:5001/
+ProxyPassReverse /maidisco/ http://127.0.0.1:5001/
+```
+
 ## Configuration
 
 Key environment variables in `.env`:
@@ -82,6 +91,7 @@ Key environment variables in `.env`:
 | `PRIMO_VID` | Primo view ID |
 | `HOST` | Server host (default: `127.0.0.1`) |
 | `PORT` | Server port (default: `5001`) |
+| `APPLICATION_ROOT` | URL prefix for subpath deployment (default: `/`) |
 | `DEBUGMODE` | Enable Flask debug mode (default: `False`) |
 | `MATOMO_URL` | Matomo tracking URL (optional, e.g. `https://analytics.example.com/`) |
 | `MATOMO_SITE_ID` | Matomo site ID (optional) |

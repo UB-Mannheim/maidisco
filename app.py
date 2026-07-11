@@ -97,6 +97,9 @@ if not systems:
 
 app = Flask(__name__)
 
+APPLICATION_ROOT = os.environ.get("APPLICATION_ROOT", "/")
+app.config["APPLICATION_ROOT"] = APPLICATION_ROOT
+
 
 # --- CSRF Protection ---
 @app.before_request
