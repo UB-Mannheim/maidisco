@@ -85,10 +85,17 @@ button { padding: 0.5rem 1rem; }
 <pre>{{translated}}</pre>
 
 {% if filters %}
-<div><strong>Applied facets:</strong> 
+<div><strong>Applied facets:</strong>
 {% for k,v in filters.items() if v %}
   {{k}} = {{v}}{% if not loop.last %}, {% endif %}
 {% endfor %}
+</div>
+{% endif %}
+
+{% if error %}
+<div style="background:#fff3cd; border:1px solid #ffc107; padding:1rem; border-radius:6px; margin:1rem 0;">
+  <strong style="color:#856404;">Fehler bei der Suche:</strong>
+  <div style="color:#856404; margin-top:0.5rem;">{{error}}</div>
 </div>
 {% endif %}
 
@@ -144,7 +151,8 @@ def translate_nl_to_vufind(nl_query):
 
 def call_vufind_search(params):
     """
-    Call VuFind REST API with filters
+    Call VuFind REST API with filters.
+    Returns dict with 'records' key on success, or dict with 'error' key on failure.
     """
     query_params = {"lookfor": params.get("lookfor", ""), "limit": 10}
     filters = params.get("filters", {})
@@ -159,9 +167,59 @@ def call_vufind_search(params):
         yf = filters.get("year_from", "")
         yt = filters.get("year_to", "")
         # query_params["filter[]"].append(f"year:\"{yf}-{yt}\"")
-    r = requests.get(VUFIND_SEARCH_ENDPOINT, params=query_params, timeout=15)
-    r.raise_for_status()
-    return r.json()
+
+    try:
+        r = requests.get(VUFIND_SEARCH_ENDPOINT, params=query_params, timeout=15)
+        r.raise_for_status()
+        return r.json()
+    except requests.exceptions.HTTPError as e:
+        status_code = e.response.status_code if e.response is not None else None
+        if status_code == 403:
+            msg = (
+                "Zugriff verweigert (HTTP 403). "
+                "Bitte überprüfen Sie die Konfiguration der VuFind-API-URL und eventuelle "
+                "Zugriffsbeschränkungen (IP-Sperre, Authentifizierung)."
+            )
+        elif status_code == 404:
+            msg = (
+                "VuFind-Endpoint nicht gefunden (HTTP 404). "
+                "Bitte überprüfen Sie die Konfiguration von VUFIND_SEARCH_ENDPOINT."
+            )
+        elif status_code == 401:
+            msg = (
+                "Nicht autorisiert (HTTP 401). "
+                "Die VuFind-API erfordert eine Authentifizierung. "
+                "Bitte überprüfen Sie Ihre Zugangsdaten."
+            )
+        elif status_code is not None and status_code >= 500:
+            msg = (
+                f"Serverfehler (HTTP {status_code}) bei der VuFind-API. "
+                "Bitte versuchen Sie es später erneut."
+            )
+        else:
+            msg = (
+                f"HTTP-Fehler {status_code or ''} bei der Anfrage an die VuFind-API. "
+                f"Details: {e}"
+            )
+        return {"error": msg}
+    except requests.exceptions.ConnectionError:
+        return {
+            "error": (
+                "Verbindung zur VuFind-API fehlgeschlagen. "
+                "Bitte überprüfen Sie die Netzwerkverbindung und die Konfiguration "
+                "von VUFIND_SEARCH_ENDPOINT."
+            )
+        }
+    except requests.exceptions.Timeout:
+        return {
+            "error": (
+                "Zeitüberschreitung bei der Anfrage an die VuFind-API. "
+                "Der Server hat zu lange nicht geantwortet. "
+                "Bitte versuchen Sie es später erneut."
+            )
+        }
+    except requests.exceptions.RequestException as e:
+        return {"error": f"Unerwarteter Fehler bei der API-Anfrage: {e}"}
 
 
 def normalize_vufind_json(raw_json, max_items=10):
@@ -225,6 +283,7 @@ def index():
         INDEX_HTML,
         example="Recent articles on climate resilience in urban planning, English, peer-reviewed",
         query=None,
+        error=None,
     )
 
 
@@ -258,10 +317,16 @@ def search():
 
     # --- VuFind search ---
     raw = call_vufind_search(translated)
-    results = normalize_vufind_json(raw)
 
-    # --- AI summary ---
-    summary_html = summarize_results(nl, results)
+    error = None
+    results = []
+    if isinstance(raw, dict) and raw.get("error"):
+        error = raw["error"]
+        summary_html = ""
+    else:
+        results = normalize_vufind_json(raw)
+        # --- AI summary ---
+        summary_html = summarize_results(nl, results)
 
     return render_template_string(
         INDEX_HTML,
@@ -270,6 +335,7 @@ def search():
         results=results,
         summary_html=summary_html,
         filters=translated_filters,
+        error=error,
     )
 
 
