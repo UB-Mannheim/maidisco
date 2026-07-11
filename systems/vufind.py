@@ -237,7 +237,7 @@ class VuFindSystem(DiscoverySystem):
                 if rec.get("id"):
                     link = (
                         f"{self.endpoint.rsplit('/api/', 1)[0]}"
-                        f"/Authority/Record/{rec['id']}"
+                        f"/AuthorityRecord/{rec['id']}"
                     )
                 results.append({
                     "title": rec.get("title", "No title"),
