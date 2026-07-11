@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>maidisco — Mannheim AI Discovery</title>
+<title>maidisco — Mannheim Intelligent Discovery</title>
 <style>
 :root {
   --brand: #1a5276;
@@ -224,7 +224,7 @@ footer a:hover { color: var(--brand-light); }
 
 <header>
   <img src="{{ url_for('static', filename='logo-ub-mannheim.svg') }}" alt="Logo Universitätsbibliothek Mannheim">
-  <h1><a href="{{ url_for('index') }}">maidisco – Mannheim AI Discovery</a></h1>
+  <h1><a href="{{ url_for('index') }}">maidisco – Mannheim Intelligent Discovery</a></h1>
   <div class="system-info">
     {{ system_name|default("nicht konfiguriert") }}
     {% if search_class_label %} &middot; {{ search_class_label }}{% endif %}
