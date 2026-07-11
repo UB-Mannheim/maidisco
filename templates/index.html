@@ -75,7 +75,7 @@ button { padding: 0.5rem 1rem; }
 <h3>Search results ({{ results|length }})</h3>
 {% for r in results %}
 <div class="result">
-  <div><strong>{{ r.title }}</strong></div>
+  <div><strong>[{{ loop.index }}] {{ r.title }}</strong></div>
   <div class="meta">{{ r.authors }} — {{ r.year }} — {{ r.format }} — <a href="{{ r.link }}" target="_blank">Open record</a></div>
   {% if r.snippet %}<div style="margin-top:.5rem">{{ r.snippet }}</div>{% endif %}
 </div>
