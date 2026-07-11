@@ -118,7 +118,8 @@ def translate_nl_to_vufind(nl_query):
     system = (
         "You are an assistant that converts natural-language library search queries "
         "into VuFind API search parameters. Return JSON with keys: 'lookfor' (string), "
-        "'type' (optional), 'filters' (dict: language, year_from, year_to, material_type)."
+        "'type' (optional, any of AllFields, Title, Author, Subject, CallNumber, ISN, tag), "
+        "'filters' (dict: language, year_from, year_to, material_type)."
     )
     prompt = f"Convert this user query into VuFind JSON:\n{nl_query}\nReturn only JSON."
     resp = client.chat.completions.create(
