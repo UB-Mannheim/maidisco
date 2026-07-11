@@ -1,72 +1,243 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>maidisco — AI Search</title>
 <style>
-body { font-family: Arial, sans-serif; margin: 2rem; }
-input, select, textarea { width: 100%; padding: 0.5rem; margin-bottom: 0.5rem; }
-button { padding: 0.5rem 1rem; }
-.result { border: 1px solid #ddd; padding: 0.75rem; margin-bottom: 0.5rem; border-radius: 6px; }
-.meta { color: #666; font-size: 0.9rem; }
-.summ { background: #f7f7f9; padding: 0.75rem; border-radius: 6px; margin-top: 1rem; }
-.error-box { background:#fff3cd; border:1px solid #ffc107; padding:1rem; border-radius:6px; margin:1rem 0; }
-.error-box strong { color:#856404; }
-.error-box div { color:#856404; margin-top:0.5rem; }
-.system-info { color: #666; font-size: 0.9rem; margin-bottom: 1rem; }
+:root {
+  --brand: #1a5276;
+  --brand-light: #2980b9;
+  --bg: #f5f6fa;
+  --card: #fff;
+  --border: #dce1e8;
+  --text: #222;
+  --muted: #5f6b7a;
+  --accent: #27ae60;
+  --radius: 8px;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  margin: 0; padding: 0;
+  background: var(--bg); color: var(--text);
+  line-height: 1.5;
+}
+a { color: var(--brand-light); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.container { max-width: 820px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+/* Header */
+header { margin-bottom: 2rem; }
+header h1 { margin: 0 0 .25rem; font-size: 1.6rem; color: var(--brand); }
+header h1 a { color: inherit; text-decoration: none; }
+header h1 a:hover { text-decoration: none; opacity: .8; }
+header .system-info { color: var(--muted); font-size: .9rem; }
+
+/* Search card */
+.search-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+.search-card label {
+  display: block;
+  font-weight: 600;
+  margin: .75rem 0 .25rem;
+  font-size: .9rem;
+}
+.search-card label:first-child { margin-top: 0; }
+.search-card textarea,
+.search-card select,
+.search-card input {
+  width: 100%;
+  padding: .55rem .7rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: .95rem;
+  font-family: inherit;
+  background: var(--bg);
+  transition: border-color .15s;
+}
+.search-card textarea:focus,
+.search-card select:focus,
+.search-card input:focus {
+  outline: none;
+  border-color: var(--brand-light);
+}
+.filters-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: .75rem;
+}
+@media (max-width: 600px) {
+  .filters-row { grid-template-columns: 1fr 1fr; }
+}
+.btn {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: .6rem 1.8rem;
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: .95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s;
+}
+.btn:hover { background: var(--brand-light); }
+
+/* Error */
+.error-box {
+  background: #fef3e2;
+  border-left: 4px solid #e67e22;
+  padding: 1rem 1.25rem;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  margin-bottom: 1.5rem;
+}
+.error-box strong { color: #935116; }
+.error-box div { color: #7a4b10; margin-top: .3rem; }
+
+/* Sections */
+.section { margin-bottom: 2rem; }
+.section h2 {
+  font-size: 1.1rem;
+  color: var(--brand);
+  margin: 0 0 .75rem;
+  padding-bottom: .35rem;
+  border-bottom: 2px solid var(--brand);
+}
+
+/* AI Summary */
+.summary-card {
+  background: linear-gradient(135deg, #eaf2f8, #eaf6ee);
+  border: 1px solid #b8d4e3;
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  font-size: .95rem;
+  line-height: 1.65;
+}
+.summary-card p { margin: .4rem 0; }
+.summary-card h1, .summary-card h2, .summary-card h3 {
+  font-size: 1rem; color: var(--brand); margin: .75rem 0 .25rem;
+}
+.summary-card ul, .summary-card ol { margin: .4rem 0; padding-left: 1.4rem; }
+.summary-card code {
+  background: rgba(0,0,0,.06);
+  padding: .1rem .3rem;
+  border-radius: 3px;
+  font-size: .9rem;
+}
+
+/* Result list */
+.result-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  margin-bottom: .6rem;
+  transition: box-shadow .15s;
+}
+.result-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,.07); }
+.result-item .title { font-weight: 600; margin-bottom: .2rem; }
+.result-item .meta { color: var(--muted); font-size: .85rem; }
+.result-item .snippet { margin-top: .5rem; font-size: .9rem; }
+
+/* Follow-up */
+.followup-list { list-style: none; padding: 0; margin: 0; }
+.followup-list li { margin-bottom: .4rem; }
+.followup-list a {
+  display: inline-block;
+  padding: .35rem .8rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: .85rem;
+  transition: background .15s;
+}
+.followup-list a:hover {
+  background: var(--brand-light);
+  color: #fff;
+  text-decoration: none;
+  border-color: var(--brand-light);
+}
+
+/* Query debug */
+.query-debug {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  font-size: .85rem;
+  color: var(--muted);
+}
+.query-debug summary { cursor: pointer; font-weight: 600; color: var(--text); }
+.query-debug pre {
+  background: var(--bg);
+  padding: .75rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: .82rem;
+  margin-top: .5rem;
+}
 </style>
 </head>
 <body>
-<h1>maidisco — AI-powered Library Search</h1>
-<div class="system-info">
-  System: <strong>{{ system_name|default("nicht konfiguriert") }}</strong>
-  {% if search_class_label %} — <strong>{{ search_class_label }}</strong>{% endif %}
-</div>
+<div class="container">
 
+<header>
+  <h1><a href="{{ url_for('index') }}">maidisco</a></h1>
+  <div class="system-info">
+    {{ system_name|default("nicht konfiguriert") }}
+    {% if search_class_label %} &middot; {{ search_class_label }}{% endif %}
+  </div>
+</header>
+
+<div class="search-card">
 <form method="post" action="{{ url_for('search') }}">
-<label for="nl">Search (natural language)</label>
-<textarea id="nl" name="nl" rows="3">{{ example }}</textarea>
+  <label for="nl">Search</label>
+  <textarea id="nl" name="nl" rows="3" placeholder="{{ example }}">{{ example if query else '' }}</textarea>
 
-{% if show_filters %}
-<label for="language">Language</label>
-<select id="language" name="language">
-  <option value="">Any</option>
-  <option value="English">English</option>
-  <option value="German">German</option>
-  <option value="French">French</option>
-</select>
+  {% if show_filters %}
+  <div class="filters-row">
+    <div>
+      <label for="language">Language</label>
+      <select id="language" name="language">
+        <option value="">Any</option>
+        <option value="English" {{ 'selected' if filters and filters.language == 'English' }}>English</option>
+        <option value="German" {{ 'selected' if filters and filters.language == 'German' }}>German</option>
+        <option value="French" {{ 'selected' if filters and filters.language == 'French' }}>French</option>
+      </select>
+    </div>
+    <div>
+      <label for="material_type">Material type</label>
+      <select id="material_type" name="material_type">
+        <option value="">Any</option>
+        {% for f in format_facets %}
+        <option value="{{ f.value }}" {{ 'selected' if filters and filters.material_type == f.value }}>{{ f.value }} ({{ f.count }})</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="year_from">Year from</label>
+      <input type="number" id="year_from" name="year_from" placeholder="e.g. 2019" value="{{ filters.year_from if filters and filters.year_from else '' }}">
+    </div>
+    <div>
+      <label for="year_to">Year to</label>
+      <input type="number" id="year_to" name="year_to" placeholder="e.g. 2024" value="{{ filters.year_to if filters and filters.year_to else '' }}">
+    </div>
+  </div>
+  {% endif %}
 
-<label for="material_type">Material type</label>
-<select id="material_type" name="material_type">
-  <option value="">Any</option>
-  {% for f in format_facets %}
-  <option value="{{ f.value }}">{{ f.value }} ({{ f.count }})</option>
-  {% endfor %}
-</select>
-
-<label for="year_from">Year from</label>
-<input type="number" id="year_from" name="year_from" placeholder="e.g., 2019">
-
-<label for="year_to">Year to</label>
-<input type="number" id="year_to" name="year_to" placeholder="e.g., 2024">
-{% endif %}
-
-<button type="submit">Search</button>
+  <button type="submit" class="btn">Search</button>
 </form>
+</div>
 
 {% if query %}
-<h2>Query: <em>{{ query }}</em></h2>
-
-<h3>AI → {{ system_name }} translated query</h3>
-<pre>{{ translated }}</pre>
-
-{% if filters %}
-<div><strong>Applied facets:</strong>
-{% for k,v in filters.items() if v %}
-  {{ k }} = {{ v }}{% if not loop.last %}, {% endif %}
-{% endfor %}
-</div>
-{% endif %}
 
 {% if error %}
 <div class="error-box">
@@ -75,27 +246,45 @@ button { padding: 0.5rem 1rem; }
 </div>
 {% endif %}
 
-<h3>Search results ({{ results|length }})</h3>
-{% for r in results %}
-<div class="result">
-  <div><strong>[{{ loop.index }}] {{ r.title }}</strong></div>
-  <div class="meta">{{ r.authors }} — {{ r.year }} — {{ r.format }} — <a href="{{ r.link }}" target="_blank">Open record</a></div>
-  {% if r.snippet %}<div style="margin-top:.5rem">{{ r.snippet }}</div>{% endif %}
+{% if summary_html %}
+<div class="section">
+  <h2>AI Summary</h2>
+  <div class="summary-card">{{ summary_html }}</div>
 </div>
-{% endfor %}
+{% endif %}
 
-<h3>AI Summary</h3>
-<div class="summ">{{ summary_html }}</div>
+{% if results %}
+<div class="section">
+  <h2>Search results ({{ results|length }})</h2>
+  {% for r in results %}
+  <div class="result-item">
+    <div class="title">[{{ loop.index }}] {{ r.title }}</div>
+    <div class="meta">{{ r.authors }} &middot; {{ r.year }} &middot; {{ r.format }} &middot; <a href="{{ r.link }}" target="_blank">Open record</a></div>
+    {% if r.snippet %}<div class="snippet">{{ r.snippet }}</div>{% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
 
 {% if follow_up_queries %}
-<h3>Suggested Follow-up Queries</h3>
-<ul>
-{% for q in follow_up_queries %}
-  <li><a href="#" onclick="document.getElementById('nl').value='{{ q|e }}'; document.querySelector('form').submit();">{{ q }}</a></li>
-{% endfor %}
-</ul>
+<div class="section">
+  <h2>Suggested follow-up queries</h2>
+  <ul class="followup-list">
+  {% for q in follow_up_queries %}
+    <li><a href="#" onclick="document.getElementById('nl').value='{{ q|e }}'; this.closest('form') ? this.closest('form').submit() : document.querySelector('form').submit(); return false;">{{ q }}</a></li>
+  {% endfor %}
+  </ul>
+</div>
 {% endif %}
+
+<details class="query-debug">
+  <summary>Translated query</summary>
+  <pre>{{ translated }}</pre>
+</details>
+
 {% endif %}
+
+</div>
 
 {% if matomo_url and matomo_site_id %}
 <!-- Matomo -->
