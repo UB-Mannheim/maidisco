@@ -265,13 +265,14 @@ def search():
     error = None
     results = []
     summary_html = ""
+    follow_up_queries = []
     filters = {}
 
     if isinstance(raw, dict) and raw.get("error"):
         error = raw["error"]
     else:
         results = system.normalize_results(raw)
-        summary_html = system.summarize_results(nl, results)
+        summary_html, follow_up_queries = system.summarize_results(nl, results)
         if system.name == "vufind":
             filters = params.get("filters", {})
 
@@ -281,6 +282,7 @@ def search():
         translated=json.dumps(translated, indent=2),
         results=results,
         summary_html=summary_html,
+        follow_up_queries=follow_up_queries,
         filters=filters,
         error=error,
         system_name=system.name.upper(),

@@ -83,6 +83,15 @@ button { padding: 0.5rem 1rem; }
 
 <h3>AI Summary</h3>
 <div class="summ">{{ summary_html }}</div>
+
+{% if follow_up_queries %}
+<h3>Suggested Follow-up Queries</h3>
+<ul>
+{% for q in follow_up_queries %}
+  <li><a href="#" onclick="document.getElementById('nl').value='{{ q|e }}'; document.querySelector('form').submit();">{{ q }}</a></li>
+{% endfor %}
+</ul>
+{% endif %}
 {% endif %}
 
 {% if matomo_url and matomo_site_id %}
