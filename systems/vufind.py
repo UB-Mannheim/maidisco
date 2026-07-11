@@ -50,10 +50,11 @@ class VuFindSystem(DiscoverySystem):
             )
             r.raise_for_status()
             data = r.json()
-            facets = data.get("facets", [])
+            facets = data.get("facets", {})
+            format_list = facets.get("format", []) if isinstance(facets, dict) else []
             self._format_facets = [
                 {"value": f["value"], "count": f.get("count", 0)}
-                for f in facets
+                for f in format_list
                 if f.get("value")
             ]
         except Exception:
