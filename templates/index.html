@@ -29,7 +29,17 @@ a:hover { text-decoration: underline; }
 
 /* Header */
 header { margin-bottom: 2rem; }
-header h1 { margin: 0 0 .25rem; font-size: 1.6rem; color: var(--brand); }
+header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+header img {
+  height: 48px;
+  width: auto;
+}
+header h1 { margin: 0; font-size: 1.6rem; color: var(--brand); }
 header h1 a { color: inherit; text-decoration: none; }
 header h1 a:hover { text-decoration: none; opacity: .8; }
 header .system-info { color: var(--muted); font-size: .9rem; }
@@ -213,6 +223,7 @@ footer a:hover { color: var(--brand-light); }
 <div class="container">
 
 <header>
+  <img src="{{ url_for('static', filename='logo-ub-mannheim.svg') }}" alt="Logo Universitätsbibliothek Mannheim">
   <h1><a href="{{ url_for('index') }}">maidisco – Mannheim AI Discovery</a></h1>
   <div class="system-info">
     {{ system_name|default("nicht konfiguriert") }}
