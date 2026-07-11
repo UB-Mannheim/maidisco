@@ -3,12 +3,13 @@
 import json
 import os
 import re
+from urllib.parse import urlparse
 
 import markdown
 import nh3
 import requests
 from dotenv import load_dotenv
-from flask import Flask, render_template_string, request
+from flask import Flask, abort, render_template_string, request
 from markupsafe import Markup
 from openai import OpenAI
 
@@ -32,6 +33,28 @@ if not OPENAI_API_KEY:
 client = OpenAI(base_url=OPENAI_API_URL, api_key=OPENAI_API_KEY)  # Required but unused
 
 app = Flask(__name__)
+
+# --- CSRF Protection ---
+@app.before_request
+def csrf_check():
+    """Validate Sec-Fetch-Site header to prevent CSRF attacks."""
+    if request.method in ("GET", "HEAD", "OPTIONS"):
+        return
+    origin = request.headers.get("Origin")
+    site = request.headers.get("Sec-Fetch-Site", "")
+    # Modern browsers: same-origin or none (direct navigation) are safe
+    if site in ("same-origin", "none"):
+        return
+    # API clients (curl, etc.) typically don't send Sec-Fetch-Site
+    if not site and not origin:
+        return
+    # Older browsers: check if Origin matches host
+    if origin:
+        origin_host = urlparse(origin).hostname
+        if origin_host == request.host:
+            return
+    abort(403, "CSRF-Validierung fehlgeschlagen")
+
 
 # --- HTML Sanitization ---
 # Markdown-relevant tags allowed in LLM summaries
@@ -140,6 +163,16 @@ button { padding: 0.5rem 1rem; }
 """
 
 # --- Helpers ---
+
+
+def _safe_url(url):
+    """Validate URL to prevent javascript: URIs and other dangerous schemes."""
+    if not url:
+        return "#"
+    parsed = urlparse(url)
+    if parsed.scheme.lower() in ("http", "https"):
+        return url
+    return "#"
 
 
 def translate_nl_to_vufind(nl_query):
@@ -264,7 +297,7 @@ def normalize_vufind_json(raw_json, max_items=10):
                 "year": rec.get("date", ""),
                 "format": rec.get("format", ""),
                 "snippet": rec.get("description", ""),
-                "link": rec.get("url", "#"),
+                "link": _safe_url(rec.get("url", "")),
             }
         )
     return results
@@ -329,6 +362,7 @@ def search():
     material_type = request.form.get("material_type", "").strip()
     year_from = request.form.get("year_from", "").strip()
     year_to = request.form.get("year_to", "").strip()
+
     if language:
         filters["language"] = language
     if material_type:
