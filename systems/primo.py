@@ -17,8 +17,8 @@ class PrimoSystem(DiscoverySystem):
 
     name = "primo"
 
-    def __init__(self, client, model):
-        super().__init__(client, model)
+    def __init__(self, client, model, max_results=10):
+        super().__init__(client, model, max_results=max_results)
         self.endpoint = os.environ.get(
             "PRIMO_SEARCH_ENDPOINT",
             "https://your-primo-instance.example.com/primo-explore/ws/v1/search",
@@ -151,11 +151,14 @@ class PrimoSystem(DiscoverySystem):
         except requests.exceptions.RequestException as e:
             return {"error": f"Unerwarteter Fehler bei der API-Anfrage: {e}"}
 
-    def normalize_results(self, raw_json, max_items=10):
+    def normalize_results(self, raw_json, max_items=None):
         """
         Convert institution-specific Primo JSON to a list of items.
         Tries common 'docs', 'records', 'pnx', 'items' patterns.
         """
+        if max_items is None:
+            max_items = self.max_results
+
         results = []
 
         # Try common patterns

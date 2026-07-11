@@ -40,16 +40,18 @@ class DiscoverySystem:
 
     name = "base"
 
-    def __init__(self, client, model):
+    def __init__(self, client, model, max_results=10):
         """
         Initialize the discovery system.
 
         Args:
             client: OpenAI client instance
             model: Model name to use for LLM calls
+            max_results: Maximum number of results to return
         """
         self.client = client
         self.model = model
+        self.max_results = max_results
 
     def translate_query(self, nl_query):
         """
@@ -75,7 +77,7 @@ class DiscoverySystem:
         """
         raise NotImplementedError
 
-    def normalize_results(self, raw_json, max_items=10):
+    def normalize_results(self, raw_json, max_items=None):
         """
         Normalize raw API response to standard format.
 

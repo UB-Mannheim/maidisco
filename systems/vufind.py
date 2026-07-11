@@ -26,8 +26,8 @@ class VuFindSystem(DiscoverySystem):
         "conference": "Conference Proceeding",
     }
 
-    def __init__(self, client, model):
-        super().__init__(client, model)
+    def __init__(self, client, model, max_results=10):
+        super().__init__(client, model, max_results=max_results)
         self.endpoint = os.environ.get(
             "VUFIND_SEARCH_ENDPOINT",
             "https://your-vufind-instance.example.com/api/search",
@@ -129,7 +129,7 @@ class VuFindSystem(DiscoverySystem):
         # Build query parameters
         query_params = {
             "lookfor": params.get("lookfor", ""),
-            "limit": 10,
+            "limit": self.max_results,
         }
 
         search_type = params.get("type", "")
@@ -220,10 +220,13 @@ class VuFindSystem(DiscoverySystem):
         except requests.exceptions.RequestException as e:
             return {"error": f"Unerwarteter Fehler bei der API-Anfrage: {e}"}
 
-    def normalize_results(self, raw_json, max_items=10, search_class="catalog"):
+    def normalize_results(self, raw_json, max_items=None, search_class="catalog"):
         """
         Normalize VuFind API JSON to list of dicts: title, authors, year, format, snippet, link
         """
+        if max_items is None:
+            max_items = self.max_results
+
         import re
 
         results = []

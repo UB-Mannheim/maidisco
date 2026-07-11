@@ -44,6 +44,7 @@ OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4")
 
 VUFIND_SEARCH_ENDPOINT = os.environ.get("VUFIND_SEARCH_ENDPOINT")
 PRIMO_SEARCH_ENDPOINT = os.environ.get("PRIMO_SEARCH_ENDPOINT")
+MAX_RESULTS = int(os.environ.get("MAX_RESULTS", "10"))
 
 MATOMO_URL = os.environ.get("MATOMO_URL")
 MATOMO_SITE_ID = os.environ.get("MATOMO_SITE_ID")
@@ -85,9 +86,9 @@ client = OpenAI(base_url=OPENAI_API_URL, api_key=OPENAI_API_KEY)
 
 systems = {}
 if VUFIND_SEARCH_ENDPOINT:
-    systems["vufind"] = VuFindSystem(client, OPENAI_MODEL)
+    systems["vufind"] = VuFindSystem(client, OPENAI_MODEL, max_results=MAX_RESULTS)
 if PRIMO_SEARCH_ENDPOINT:
-    systems["primo"] = PrimoSystem(client, OPENAI_MODEL)
+    systems["primo"] = PrimoSystem(client, OPENAI_MODEL, max_results=MAX_RESULTS)
 
 if not systems:
     raise RuntimeError(
