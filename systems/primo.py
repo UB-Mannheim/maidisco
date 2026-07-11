@@ -52,15 +52,20 @@ class PrimoSystem(DiscoverySystem):
             "Return only JSON."
         )
 
-        resp = self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": prompt},
-            ],
-            max_tokens=400,
-            temperature=0.0,
-        )
+        try:
+            resp = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": prompt},
+                ],
+                max_tokens=400,
+                temperature=0.0,
+            )
+        except Exception as e:
+            raise RuntimeError(
+                f"Verbindung zum Sprachmodell fehlgeschlagen: {e}"
+            ) from e
 
         text = resp.choices[0].message.content.strip()
         text = self._strip_markdown_fences(text)

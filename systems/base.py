@@ -140,16 +140,22 @@ class DiscoverySystem:
             "and suggest 2 follow-up search queries."
         )
 
-        resp = self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": prompt},
-            ],
-            max_tokens=1200,
-            temperature=0.2,
-            timeout=120,
-        )
+        try:
+            resp = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": prompt},
+                ],
+                max_tokens=1200,
+                temperature=0.2,
+                timeout=120,
+            )
+        except Exception as e:
+            return Markup(
+                f'<div class="error-box"><strong>Fehler bei der KI-Zusammenfassung:</strong> '
+                f'<div>Verbindung zum Sprachmodell fehlgeschlagen.</div></div>'
+            )
 
         summary = resp.choices[0].message.content.strip()
         raw_html = markdown.markdown(summary)

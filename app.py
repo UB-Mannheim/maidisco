@@ -242,7 +242,18 @@ def search():
             user_filters["year_to"] = year_to
 
     # Translate query
-    translated = system.translate_query(nl)
+    try:
+        translated = system.translate_query(nl)
+    except Exception as e:
+        return render_template(
+            "index.html",
+            query=nl,
+            error=str(e),
+            system_name=system.name.upper(),
+            show_filters=system.name == "vufind",
+            matomo_url=MATOMO_URL,
+            matomo_site_id=MATOMO_SITE_ID,
+        )
 
     # Build search parameters
     params = system.build_search_params(translated, user_filters)
