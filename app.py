@@ -49,6 +49,12 @@ MAX_RESULTS = int(os.environ.get("MAX_RESULTS", "10"))
 MATOMO_URL = os.environ.get("MATOMO_URL")
 MATOMO_SITE_ID = os.environ.get("MATOMO_SITE_ID")
 
+LEGAL_NOTICE_URL = os.environ.get("LEGAL_NOTICE_URL")
+PRIVACY_URL = os.environ.get("PRIVACY_URL")
+ACCESSIBILITY_URL = os.environ.get("ACCESSIBILITY_URL")
+SIGN_LANGUAGE_URL = os.environ.get("SIGN_LANGUAGE_URL")
+EASY_LANGUAGE_URL = os.environ.get("EASY_LANGUAGE_URL")
+
 if not OPENAI_API_KEY:
     raise RuntimeError("OPENAI_API_KEY environment variable is required")
 
@@ -207,6 +213,11 @@ def index():
         format_facets=format_facets,
         matomo_url=MATOMO_URL,
         matomo_site_id=MATOMO_SITE_ID,
+        legal_notice_url=LEGAL_NOTICE_URL,
+        privacy_url=PRIVACY_URL,
+        accessibility_url=ACCESSIBILITY_URL,
+        sign_language_url=SIGN_LANGUAGE_URL,
+        easy_language_url=EASY_LANGUAGE_URL,
     )
 
 
@@ -229,6 +240,8 @@ def search():
             format_facets=[],
             matomo_url=MATOMO_URL,
             matomo_site_id=MATOMO_SITE_ID,
+            impressum_url=IMPRESSUM_URL,
+            datenschutz_url=DATENSCHUTZ_URL,
         )
 
     # Collect user filters (for systems that support them)
@@ -259,6 +272,11 @@ def search():
             show_filters=system.name == "vufind",
             matomo_url=MATOMO_URL,
             matomo_site_id=MATOMO_SITE_ID,
+            legal_notice_url=LEGAL_NOTICE_URL,
+            privacy_url=PRIVACY_URL,
+            accessibility_url=ACCESSIBILITY_URL,
+            sign_language_url=SIGN_LANGUAGE_URL,
+            easy_language_url=EASY_LANGUAGE_URL,
         )
 
     # Build search parameters
@@ -310,6 +328,11 @@ def search():
         format_facets=format_facets,
         matomo_url=MATOMO_URL,
         matomo_site_id=MATOMO_SITE_ID,
+        legal_notice_url=LEGAL_NOTICE_URL,
+        privacy_url=PRIVACY_URL,
+        accessibility_url=ACCESSIBILITY_URL,
+        sign_language_url=SIGN_LANGUAGE_URL,
+        easy_language_url=EASY_LANGUAGE_URL,
     )
 
 

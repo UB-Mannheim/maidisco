@@ -96,6 +96,11 @@ Key environment variables in `.env`:
 | `DEBUGMODE` | Enable Flask debug mode (default: `False`) |
 | `MATOMO_URL` | Matomo tracking URL (optional, e.g. `https://analytics.example.com/`) |
 | `MATOMO_SITE_ID` | Matomo site ID (optional) |
+| `LEGAL_NOTICE_URL` | URL to legal notice/Impressum page (optional) |
+| `PRIVACY_URL` | URL to privacy policy/Datenschutz page (optional) |
+| `ACCESSIBILITY_URL` | URL to accessibility statement/Barrierefreiheit page (optional) |
+| `SIGN_LANGUAGE_URL` | URL to sign language/Gebärdensprache page (optional) |
+| `EASY_LANGUAGE_URL` | URL to easy language/Leichte Sprache page (optional) |
 
 ## Security
 

@@ -197,6 +197,16 @@ header .system-info { color: var(--muted); font-size: .9rem; }
   font-size: .82rem;
   margin-top: .5rem;
 }
+footer {
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  font-size: .8rem;
+  color: var(--muted);
+  text-align: center;
+}
+footer a { color: var(--muted); }
+footer a:hover { color: var(--brand-light); }
 </style>
 </head>
 <body>
@@ -296,6 +306,16 @@ header .system-info { color: var(--muted); font-size: .9rem; }
   <pre>{{ translated }}</pre>
 </details>
 
+{% endif %}
+
+{% if legal_notice_url or privacy_url or accessibility_url or sign_language_url or easy_language_url %}
+<footer>
+  {% if legal_notice_url %}<a href="{{ legal_notice_url }}" target="_blank">Legal Notice</a>{% endif %}
+  {% if privacy_url %}{% if legal_notice_url %} &middot; {% endif %}<a href="{{ privacy_url }}" target="_blank">Privacy Policy</a>{% endif %}
+  {% if accessibility_url %}{% if legal_notice_url or privacy_url %} &middot; {% endif %}<a href="{{ accessibility_url }}" target="_blank">Accessibility</a>{% endif %}
+  {% if sign_language_url %}{% if legal_notice_url or privacy_url or accessibility_url %} &middot; {% endif %}<a href="{{ sign_language_url }}" target="_blank">Sign Language</a>{% endif %}
+  {% if easy_language_url %}{% if legal_notice_url or privacy_url or accessibility_url or sign_language_url %} &middot; {% endif %}<a href="{{ easy_language_url }}" target="_blank">Easy Language</a>{% endif %}
+</footer>
 {% endif %}
 
 </div>
