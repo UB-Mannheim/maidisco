@@ -89,6 +89,19 @@ header .system-info { color: var(--muted); font-size: .9rem; }
   transition: background .15s;
 }
 .btn:hover { background: var(--brand-light); }
+.btn-secondary {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: .6rem 1.8rem;
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: .95rem;
+  cursor: pointer;
+  transition: background .15s;
+}
+.btn-secondary:hover { background: var(--bg); }
 
 /* Error */
 .error-box {
@@ -200,7 +213,7 @@ header .system-info { color: var(--muted); font-size: .9rem; }
 <div class="search-card">
 <form method="post" action="{{ url_for('search') }}">
   <label for="nl">Search</label>
-  <textarea id="nl" name="nl" rows="3" placeholder="{{ example }}">{{ example if query else '' }}</textarea>
+  <textarea id="nl" name="nl" rows="3" placeholder="{{ example }}">{{ query if query else example }}</textarea>
 
   {% if show_filters %}
   <div class="filters-row">
@@ -234,6 +247,7 @@ header .system-info { color: var(--muted); font-size: .9rem; }
   {% endif %}
 
   <button type="submit" class="btn">Search</button>
+  <button type="button" class="btn-secondary" onclick="document.getElementById('language').value=''; document.getElementById('material_type').value=''; document.getElementById('year_from').value=''; document.getElementById('year_to').value='';">Reset filters</button>
 </form>
 </div>
 
