@@ -144,7 +144,7 @@ class VuFindSystem(DiscoverySystem):
                 "recordPageAbsoluteLink",
             ]
         elif search_class == "authority":
-            query_params["field[]"] = ["id", "title", "institutions"]
+            query_params["field[]"] = ["id", "title", "institutions", "fullrecord"]
         elif search_class == "web":
             query_params["field[]"] = ["id", "title", "url", "lastModified"]
 
@@ -220,6 +220,53 @@ class VuFindSystem(DiscoverySystem):
         except requests.exceptions.RequestException as e:
             return {"error": f"Unerwarteter Fehler bei der API-Anfrage: {e}"}
 
+    def _parse_marc(self, marc_text):
+        """
+        Parse MARC text format into a dict of field tags to values.
+
+        Input format (from VuFind API):
+            TAG  IND    |a value |b value ...
+
+        Returns dict like {"100": "Gehrlein, Sabine", "510": ["Aff1", "Aff2"], ...}
+        """
+        import re
+
+        result = {}
+        if not marc_text:
+            return result
+
+        lines = marc_text.split("\n")
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            # Match: TAG  IND    |a value |b value ...
+            m = re.match(r"^(\d{3})\s+\S+\s+(.*)", line)
+            if not m:
+                continue
+            tag = m.group(1)
+            data = m.group(2)
+
+            # Extract subfield |a values (main content)
+            values = re.findall(r"\|a\s*([^|]*)", data)
+            value_str = " ".join(v.strip() for v in values if v.strip())
+
+            # For field 678, use subfield |b (description)
+            if tag == "678":
+                b_values = re.findall(r"\|b\s*([^|]*)", data)
+                value_str = " ".join(v.strip() for v in b_values if v.strip())
+
+            if not value_str:
+                continue
+
+            # Accumulate: single value for some tags, list for others
+            if tag in ("400", "510", "550", "551"):
+                result.setdefault(tag, []).append(value_str)
+            elif tag not in result:
+                result[tag] = value_str
+
+        return result
+
     def normalize_results(self, raw_json, max_items=10, search_class="catalog"):
         """
         Normalize VuFind API JSON to list of dicts: title, authors, year, format, snippet, link
@@ -231,20 +278,35 @@ class VuFindSystem(DiscoverySystem):
 
         if search_class == "authority":
             for rec in records[:max_items]:
-                institutions = rec.get("institutions", [])
-                inst_str = ", ".join(institutions) if isinstance(institutions, list) else ""
                 link = ""
                 if rec.get("id"):
                     link = (
                         f"{self.endpoint.rsplit('/api/', 1)[0]}"
                         f"/AuthorityRecord/{rec['id']}"
                     )
+
+                # Parse MARC from fullRecord
+                marc = self._parse_marc(rec.get("fullrecord", ""))
+
+                # Build structured snippet from MARC fields
+                parts = []
+                if marc.get("678"):
+                    parts.append(marc["678"])
+                if marc.get("510"):
+                    parts.append("Affiliation: " + "; ".join(marc["510"]))
+                if marc.get("550"):
+                    parts.append("Beruf: " + "; ".join(marc["550"]))
+                if marc.get("551"):
+                    parts.append("Ort: " + "; ".join(marc["551"]))
+                if marc.get("400"):
+                    parts.append("Frühere Namen: " + "; ".join(marc["400"]))
+
                 results.append({
                     "title": rec.get("title", "No title"),
                     "authors": "",
-                    "year": "",
+                    "year": marc.get("548", ""),
                     "format": "Normdaten",
-                    "snippet": inst_str,
+                    "snippet": " — ".join(parts),
                     "link": self._safe_url(link),
                 })
             return results
