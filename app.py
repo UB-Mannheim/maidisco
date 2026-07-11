@@ -199,7 +199,6 @@ def index():
 
     return render_template(
         "index.html",
-        example="Recent articles on climate resilience in urban planning, English, peer-reviewed",
         query=None,
         error=None,
         system_name=system_name,

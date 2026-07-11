@@ -213,7 +213,7 @@ header .system-info { color: var(--muted); font-size: .9rem; }
 <div class="search-card">
 <form method="post" action="{{ url_for('search') }}">
   <label for="nl">Search</label>
-  <textarea id="nl" name="nl" rows="3" placeholder="{{ example }}">{{ query if query else example }}</textarea>
+  <textarea id="nl" name="nl" rows="3" placeholder="Describe what you are looking for in natural language...">{{ query if query else '' }}</textarea>
 
   {% if show_filters %}
   <div class="filters-row">
