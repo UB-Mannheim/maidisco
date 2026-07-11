@@ -20,15 +20,10 @@ class VuFindSystem(DiscoverySystem):
     # Map common material type terms to valid VuFind format facet values
     MATERIAL_TYPE_MAP = {
         "article": "Journal",
-        "articles": "Journal",
         "book": "Book",
-        "books": "Book",
         "thesis": "Serial",
-        "theses": "Serial",
         "ebook": "eBook",
-        "ebooks": "eBook",
         "conference": "Conference Proceeding",
-        "conferences": "Conference Proceeding",
     }
 
     def __init__(self, client, model):
