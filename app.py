@@ -101,6 +101,23 @@ APPLICATION_ROOT = os.environ.get("APPLICATION_ROOT", "/")
 app.config["APPLICATION_ROOT"] = APPLICATION_ROOT
 
 
+# --- WSGI Middleware for subpath deployment ---
+class _ScriptNameMiddleware:
+    """Set SCRIPT_NAME so url_for() generates correct URLs under a subpath."""
+
+    def __init__(self, wsgi_app, prefix):
+        self.wsgi_app = wsgi_app
+        self.prefix = prefix.rstrip("/")
+
+    def __call__(self, environ, start_response):
+        environ["SCRIPT_NAME"] = self.prefix
+        return self.wsgi_app(environ, start_response)
+
+
+if APPLICATION_ROOT != "/":
+    app.wsgi_app = _ScriptNameMiddleware(app.wsgi_app, APPLICATION_ROOT)
+
+
 # --- CSRF Protection ---
 @app.before_request
 def csrf_check():
