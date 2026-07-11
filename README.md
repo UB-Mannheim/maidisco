@@ -26,6 +26,7 @@ Then, start one or both of the provided web applications:
 ./primo_ai_frontend_flask.py
 
 # Run web application for VuFind search with AI support.
+./vufind_ai_frontend_flask.py
 ```
 
 ## Usage
@@ -45,7 +46,7 @@ Many features are missing, and the software may have bugs and security issues.
 
 maidisco – Mannheim Intelligent Discovery System for AI assisted search
 
-Copyright (C) 2025 Universitätsbibliothek Mannheim
+Copyright (C) 2025–2026 Universitätsbibliothek Mannheim
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
