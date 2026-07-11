@@ -6,3 +6,4 @@ markdown
 nh3>=0.3.6
 httpx[socks]
 requests[socks]
+gunicorn

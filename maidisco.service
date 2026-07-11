@@ -1,0 +1,20 @@
+[Unit]
+Description=maidisco – Mannheim Intelligent Discovery System
+After=network.target
+
+[Service]
+Type=exec
+User=ai
+Group=ai
+WorkingDirectory=/opt/maidisco
+EnvironmentFile=/opt/maidisco/.env
+ExecStart=/opt/maidisco/venv/bin/gunicorn \
+    --bind 127.0.0.1:5001 \
+    --workers 2 \
+    --timeout 120 \
+    app:app
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

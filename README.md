@@ -38,6 +38,33 @@ The application automatically detects which discovery system to use:
 - **Primo** is used if `PRIMO_SEARCH_ENDPOINT` is configured and VuFind is not
 - **Primo** can be forced by including "primo" (case-insensitive) in the search query
 
+## Deployment with systemd
+
+For running as a system service (Linux), a systemd unit file is included.
+
+```shell
+# Create system user
+sudo useradd -r -s /sbin/nologin ai
+
+# Deploy application
+sudo mkdir -p /opt/maidisco
+sudo cp -r . /opt/maidisco/
+sudo chown -R ai:ai /opt/maidisco
+
+# Set up virtual environment
+sudo -u ai python3 -m venv /opt/maidisco/venv
+sudo -u ai /opt/maidisco/venv/bin/pip install -U pip -r /opt/maidisco/requirements.txt
+
+# Configure
+sudo -u ai cp /opt/maidisco/sample.env /opt/maidisco/.env
+sudo nano /opt/maidisco/.env   # edit settings
+
+# Install and start service
+sudo cp /opt/maidisco/maidisco.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now maidisco
+```
+
 ## Configuration
 
 Key environment variables in `.env`:
