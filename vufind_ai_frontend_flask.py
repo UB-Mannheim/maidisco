@@ -3,7 +3,9 @@
 import json
 import os
 import re
+import time
 import warnings
+from collections import defaultdict
 from urllib.parse import urlparse
 
 import markdown
@@ -78,6 +80,28 @@ def csrf_check():
         if origin_host == request.host:
             return
     abort(403, "CSRF-Validierung fehlgeschlagen")
+
+
+# --- Rate Limiting ---
+RATE_LIMIT_REQUESTS = 30  # max requests per window
+RATE_LIMIT_WINDOW = 60  # window in seconds
+_rate_limit_data = defaultdict(list)
+
+
+@app.before_request
+def rate_limit_check():
+    """Simple in-memory rate limiter per IP address."""
+    if request.method in ("GET", "HEAD", "OPTIONS"):
+        return
+    client_ip = request.remote_addr or "unknown"
+    now = time.time()
+    # Remove expired entries
+    _rate_limit_data[client_ip] = [
+        t for t in _rate_limit_data[client_ip] if now - t < RATE_LIMIT_WINDOW
+    ]
+    if len(_rate_limit_data[client_ip]) >= RATE_LIMIT_REQUESTS:
+        abort(429, "Zu viele Anfragen. Bitte warten Sie einen Moment.")
+    _rate_limit_data[client_ip].append(now)
 
 
 # --- HTML Sanitization ---
