@@ -77,9 +77,9 @@ class VuFindSystem(DiscoverySystem):
         filters = params.get("filters", {})
         query_params["filter[]"] = []
         if "language" in filters and filters["language"]:
-            query_params["filter[]"].append(f"language:\"{filters['language']}\"")
+            query_params["filter[]"].append(f"language:{filters['language']}")
         if "material_type" in filters and filters["material_type"]:
-            query_params["filter[]"].append(f"type:\"{filters['material_type']}\"")
+            query_params["filter[]"].append(f"format:{filters['material_type']}")
         if ("year_from" in filters and filters["year_from"]) or (
             "year_to" in filters and filters["year_to"]
         ):
