@@ -32,6 +32,29 @@ class VuFindSystem(DiscoverySystem):
             "VUFIND_SEARCH_ENDPOINT",
             "https://your-vufind-instance.example.com/api/search",
         )
+        self._format_facets = None
+
+    def get_format_facets(self):
+        """Fetch available format facet values from VuFind (cached)."""
+        if self._format_facets is not None:
+            return self._format_facets
+        try:
+            r = requests.get(
+                self.endpoint,
+                params={"lookfor": "*", "limit": 0, "facet[]": "format"},
+                timeout=10,
+            )
+            r.raise_for_status()
+            data = r.json()
+            facets = data.get("facets", [])
+            self._format_facets = [
+                {"value": f["value"], "count": f.get("count", 0)}
+                for f in facets
+                if f.get("value")
+            ]
+        except Exception:
+            self._format_facets = []
+        return self._format_facets
 
     def translate_query(self, nl_query):
         """
@@ -84,7 +107,15 @@ class VuFindSystem(DiscoverySystem):
         Call VuFind REST API with filters.
         Returns dict with 'records' key on success, or dict with 'error' key on failure.
         """
-        query_params = {"lookfor": params.get("lookfor", ""), "limit": 10}
+        query_params = {
+            "lookfor": params.get("lookfor", ""),
+            "limit": 10,
+            "field[]": [
+                "title", "authors", "formats", "id", "urls",
+                "summary", "publicationDates",
+                "recordPageAbsoluteLink",
+            ],
+        }
         search_type = params.get("type", "")
         if search_type:
             query_params["type"] = search_type
@@ -96,12 +127,10 @@ class VuFindSystem(DiscoverySystem):
             mt = filters["material_type"].lower()
             format_value = self.MATERIAL_TYPE_MAP.get(mt, filters["material_type"])
             query_params["filter[]"].append(f"format:{format_value}")
-        if ("year_from" in filters and filters["year_from"]) or (
-            "year_to" in filters and filters["year_to"]
-        ):
-            yf = filters.get("year_from", "")
-            yt = filters.get("year_to", "")
-            # query_params["filter[]"].append(f"year:\"{yf}-{yt}\"")
+        if "year_from" in filters and filters["year_from"]:
+            query_params["filter[]"].append(f"publishDate:[{filters['year_from']} TO *]")
+        if "year_to" in filters and filters["year_to"]:
+            query_params["filter[]"].append(f"publishDate:[* TO {filters['year_to']}]")
 
         try:
             r = requests.get(self.endpoint, params=query_params, timeout=15)
@@ -180,21 +209,36 @@ class VuFindSystem(DiscoverySystem):
             formats = rec.get("formats", [])
             fmt = ", ".join(formats) if isinstance(formats, list) else str(formats)
 
-            # Link: use first URL or construct Record link
-            urls = rec.get("urls", [])
-            link = ""
-            if urls and isinstance(urls, list) and urls[0].get("url"):
-                link = urls[0]["url"]
-            elif rec.get("id"):
-                link = f"{self.endpoint.rsplit('/api/', 1)[0]}/Record/{rec['id']}"
+            # Year: from publicationDates
+            pub_dates = rec.get("publicationDates", [])
+            year = ""
+            if pub_dates:
+                # Extract 4-digit year from first date
+                import re
+                m = re.search(r"\b(\d{4})\b", pub_dates[0])
+                if m:
+                    year = m.group(1)
+
+            # Snippet: from summary
+            summaries = rec.get("summary", [])
+            snippet = " ".join(summaries) if isinstance(summaries, list) else str(summaries)
+
+            # Link: prefer recordPageAbsoluteLink, fallback to urls, then Record/{id}
+            link = rec.get("recordPageAbsoluteLink", "")
+            if not link:
+                urls = rec.get("urls", [])
+                if urls and isinstance(urls, list) and urls[0].get("url"):
+                    link = urls[0]["url"]
+                elif rec.get("id"):
+                    link = f"{self.endpoint.rsplit('/api/', 1)[0]}/Record/{rec['id']}"
 
             results.append(
                 {
                     "title": rec.get("title", "No title"),
                     "authors": ", ".join(authors),
-                    "year": "",
+                    "year": year,
                     "format": fmt,
-                    "snippet": "",
+                    "snippet": snippet,
                     "link": self._safe_url(link),
                 }
             )

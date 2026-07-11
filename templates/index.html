@@ -36,9 +36,9 @@ button { padding: 0.5rem 1rem; }
 <label for="material_type">Material type</label>
 <select id="material_type" name="material_type">
   <option value="">Any</option>
-  <option value="Books">Books</option>
-  <option value="Articles">Articles</option>
-  <option value="Theses">Theses</option>
+  {% for f in format_facets %}
+  <option value="{{ f.value }}">{{ f.value }} ({{ f.count }})</option>
+  {% endfor %}
 </select>
 
 <label for="year_from">Year from</label>

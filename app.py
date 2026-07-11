@@ -189,8 +189,10 @@ def detect_system(nl_query):
 @app.route("/", methods=["GET"])
 def index():
     system_name = None
+    format_facets = []
     if "vufind" in systems:
         system_name = "VuFind"
+        format_facets = systems["vufind"].get_format_facets()
     elif "primo" in systems:
         system_name = "Primo"
 
@@ -201,6 +203,7 @@ def index():
         error=None,
         system_name=system_name,
         show_filters="vufind" in systems,
+        format_facets=format_facets,
         matomo_url=MATOMO_URL,
         matomo_site_id=MATOMO_SITE_ID,
     )
@@ -221,6 +224,7 @@ def search():
             error="Kein Discovery-System konfiguriert.",
             system_name=None,
             show_filters=False,
+            format_facets=[],
             matomo_url=MATOMO_URL,
             matomo_site_id=MATOMO_SITE_ID,
         )
@@ -276,6 +280,10 @@ def search():
         if system.name == "vufind":
             filters = params.get("filters", {})
 
+    format_facets = []
+    if system.name == "vufind":
+        format_facets = system.get_format_facets()
+
     return render_template(
         "index.html",
         query=nl,
@@ -287,6 +295,7 @@ def search():
         error=error,
         system_name=system.name.upper(),
         show_filters=system.name == "vufind",
+        format_facets=format_facets,
         matomo_url=MATOMO_URL,
         matomo_site_id=MATOMO_SITE_ID,
     )
