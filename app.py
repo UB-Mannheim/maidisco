@@ -17,6 +17,7 @@ System detection:
 """
 
 import json
+import logging
 import os
 import re
 import time
@@ -33,6 +34,8 @@ from openai import OpenAI
 from systems import PrimoSystem, VuFindSystem
 
 load_dotenv()
+
+logging.basicConfig(level=logging.WARNING)
 
 # --- Configuration ---
 DEBUGMODE = os.environ.get("DEBUGMODE", False)

@@ -7,6 +7,7 @@ Provides a common interface for Primo and VuFind.
 
 import json
 import logging
+import os
 import re
 
 import markdown
@@ -36,6 +37,14 @@ MD_ALLOWED_ATTRIBUTES = {
 }
 
 logger = logging.getLogger(__name__)
+
+_log_file = os.environ.get("DEBUG_LOG")
+if _log_file:
+    _fh = logging.FileHandler(_log_file)
+    _fh.setLevel(logging.DEBUG)
+    _fh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+    logger.addHandler(_fh)
+    logger.setLevel(logging.DEBUG)
 
 
 class DiscoverySystem:
@@ -73,8 +82,8 @@ class DiscoverySystem:
         reasoning = getattr(msg, "reasoning_content", None) or ""
 
         if not reasoning:
-            logger.warning("reasoning_content empty — model=%s content_len=%d content_type=%s",
-                           resp.model, len(content), type(content).__name__)
+            logger.debug("reasoning_content empty — model=%s content_len=%d content_type=%s",
+                         resp.model, len(content), type(content).__name__)
             raw_reasoning = getattr(msg, "reasoning_content", "MISSING")
             logger.debug("reasoning_content raw=%r", raw_reasoning)
             extra = getattr(msg, "additional_kwargs", None)
