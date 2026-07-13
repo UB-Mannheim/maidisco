@@ -93,7 +93,7 @@ class VuFindSystem(DiscoverySystem):
         )
         try:
             resp = self.client.chat.completions.create(
-                model=model or self.model,
+                model=self.model,
                 messages=[
                     {"role": "system", "content": system},
                     {"role": "user", "content": prompt},
