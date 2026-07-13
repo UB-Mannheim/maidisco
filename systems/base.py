@@ -68,6 +68,21 @@ class DiscoverySystem:
         msg = resp.choices[0].message
         content = getattr(msg, "content", None) or ""
         reasoning = getattr(msg, "reasoning_content", None) or ""
+
+        if not reasoning:
+            print(f"[DEBUG] model={resp.model}")
+            print(f"[DEBUG] content type={type(content).__name__} len={len(content)}")
+            print(f"[DEBUG] reasoning_content={getattr(msg, 'reasoning_content', 'MISSING')!r}")
+            for attr in ("role", "function_call", "tool_calls", "audio", "refusal"):
+                val = getattr(msg, attr, "MISSING")
+                if val not in (None, "MISSING"):
+                    print(f"[DEBUG] msg.{attr}={val!r}")
+            extra = getattr(msg, "additional_kwargs", None)
+            if extra:
+                print(f"[DEBUG] additional_kwargs={extra!r}")
+            if hasattr(msg, "model_extra") and msg.model_extra:
+                print(f"[DEBUG] model_extra={msg.model_extra!r}")
+
         return content, reasoning
 
     def translate_query(self, nl_query, model=None):
