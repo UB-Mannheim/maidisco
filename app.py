@@ -28,7 +28,7 @@ from urllib.parse import urlparse
 import markdown
 import requests
 from dotenv import load_dotenv
-from flask import Flask, abort, render_template, request
+from flask import Flask, abort, jsonify, render_template, request
 from openai import OpenAI
 
 from systems import PrimoSystem, VuFindSystem
@@ -153,20 +153,31 @@ RATE_LIMIT_REQUESTS = 30
 RATE_LIMIT_WINDOW = 60
 _rate_limit_data = defaultdict(list)
 
+API_RATE_LIMIT_REQUESTS = int(os.environ.get("API_RATE_LIMIT", "10"))
+API_RATE_LIMIT_WINDOW = 60
+_api_rate_limit_data = defaultdict(list)
+
+
+def _check_rate_limit(data, limit, window):
+    """Simple in-memory rate limiter per IP address."""
+    client_ip = request.remote_addr or "unknown"
+    now = time.time()
+    data[client_ip] = [t for t in data[client_ip] if now - t < window]
+    if len(data[client_ip]) >= limit:
+        return False
+    data[client_ip].append(now)
+    return True
+
 
 @app.before_request
 def rate_limit_check():
-    """Simple in-memory rate limiter per IP address."""
+    """Rate limiter for web UI routes."""
     if request.method in ("GET", "HEAD", "OPTIONS"):
         return
-    client_ip = request.remote_addr or "unknown"
-    now = time.time()
-    _rate_limit_data[client_ip] = [
-        t for t in _rate_limit_data[client_ip] if now - t < RATE_LIMIT_WINDOW
-    ]
-    if len(_rate_limit_data[client_ip]) >= RATE_LIMIT_REQUESTS:
+    if request.path.startswith("/api/"):
+        return  # handled separately
+    if not _check_rate_limit(_rate_limit_data, RATE_LIMIT_REQUESTS, RATE_LIMIT_WINDOW):
         abort(429, "Zu viele Anfragen. Bitte warten Sie einen Moment.")
-    _rate_limit_data[client_ip].append(now)
 
 
 # --- System Detection ---
@@ -352,6 +363,74 @@ def search():
         accessibility_url=ACCESSIBILITY_URL,
         sign_language_url=SIGN_LANGUAGE_URL,
         easy_language_url=EASY_LANGUAGE_URL,
+    )
+
+
+# --- API ---
+def _strip_html(html_str):
+    """Strip HTML tags, returning plain text."""
+    return re.sub(r"<[^>]+>", "", html_str)
+
+
+@app.route("/api/search", methods=["POST"])
+def api_search():
+    """JSON API for programmatic access (e.g. phone interface).
+
+    Request:  {"query": "...", "model": "..."}
+    Response: {"summary": "...", "follow_up_queries": [...], "results": [...]}
+    """
+    if not _check_rate_limit(
+        _api_rate_limit_data, API_RATE_LIMIT_REQUESTS, API_RATE_LIMIT_WINDOW
+    ):
+        return jsonify({"error": "Rate limit exceeded. Try again shortly."}), 429
+
+    data = request.get_json(silent=True)
+    if not data or not isinstance(data, dict):
+        return jsonify({"error": "Request body must be JSON."}), 400
+
+    nl = (data.get("query") or "").strip()
+    if not nl:
+        return jsonify({"error": "Missing or empty 'query' field."}), 400
+
+    selected_model = (data.get("model") or LLM_MODELS[0]).strip()
+    if selected_model not in LLM_MODELS:
+        selected_model = LLM_MODELS[0]
+
+    system = detect_system(nl)
+    if not system:
+        return jsonify({"error": "No discovery system configured."}), 503
+
+    try:
+        translated = system.translate_query(nl, model=selected_model)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 502
+
+    params = system.build_search_params(translated)
+    raw = system.call_search(params)
+
+    if isinstance(raw, dict) and raw.get("error"):
+        return jsonify({"error": raw["error"]}), 502
+
+    search_class = translated.get("search_class", "catalog")
+    results = system.normalize_results(raw, search_class=search_class)
+    summary_html, follow_up_queries, _thinking = system.summarize_results(
+        nl, results, model=selected_model
+    )
+
+    return jsonify(
+        {
+            "summary": _strip_html(str(summary_html)),
+            "follow_up_queries": follow_up_queries,
+            "results": [
+                {
+                    "title": r.get("title", ""),
+                    "author": r.get("author", ""),
+                    "url": r.get("url", ""),
+                    "year": r.get("year", ""),
+                }
+                for r in results
+            ],
+        }
     )
 
 

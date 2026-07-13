@@ -38,6 +38,58 @@ The application automatically detects which discovery system to use:
 - **Primo** is used if `PRIMO_SEARCH_ENDPOINT` is configured and VuFind is not
 - **Primo** can be forced by including "primo" (case-insensitive) in the search query
 
+## API
+
+A JSON API is available for programmatic access (e.g. phone applications).
+
+### `POST /api/search`
+
+Send a natural language query and receive a summary, follow-up suggestions, and results.
+
+**Request**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `query` | string | yes | Natural language search query |
+| `model` | string | no | LLM model name (defaults to first in `LLM_MODELS`) |
+
+**Response**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `summary` | string | Plain text summary of the search results |
+| `follow_up_queries` | string[] | Suggested follow-up questions |
+| `results` | object[] | Matching records (title, author, url, year) |
+
+**Rate limiting:** 10 requests per minute per IP (configurable via `API_RATE_LIMIT`).
+
+**Example**
+
+```bash
+curl -s -X POST http://127.0.0.1:5001/api/search \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Bücher über Künstliche Intelligenz"}' | python3 -m json.tool
+```
+
+```json
+{
+  "follow_up_queries": [
+    "Gibt es Neuerscheinungen zu diesem Thema?"
+  ],
+  "results": [
+    {
+      "author": "Stuart Russell",
+      "title": "Artificial Intelligence: A Modern Approach",
+      "url": "https://example.com/...",
+      "year": "2021"
+    }
+  ],
+  "summary": "Es wurden 3 Treffer gefunden. Das bekannteste Werk ist ..."
+}
+```
+
+**Error responses** use appropriate HTTP status codes (400, 429, 502, 503) with a JSON body `{"error": "..."}`.
+
 ## Deployment with systemd
 
 For running as a system service (Linux), a systemd unit file is included.
@@ -93,6 +145,7 @@ Key environment variables in `.env`:
 | `PORT` | Server port (default: `5001`) |
 | `APPLICATION_ROOT` | URL prefix for subpath deployment (default: `/`) |
 | `MAX_RESULTS` | Maximum number of search results (default: `10`) |
+| `API_RATE_LIMIT` | API rate limit: requests per minute per IP (default: `10`) |
 | `DEBUGMODE` | Enable Flask debug mode (default: `False`) |
 | `MATOMO_URL` | Matomo tracking URL (optional, e.g. `https://analytics.example.com/`) |
 | `MATOMO_SITE_ID` | Matomo site ID (optional) |
