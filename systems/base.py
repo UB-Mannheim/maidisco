@@ -217,6 +217,22 @@ class DiscoverySystem:
         raw_text = content.strip()
         raw_text = self._strip_markdown_fences(raw_text)
 
+        # Some thinking models return the answer in reasoning when content is empty
+        if not raw_text and reasoning.strip():
+            # Try to extract JSON from reasoning (answer often at the end)
+            clean_reasoning = self._strip_markdown_fences(reasoning.strip())
+            try:
+                data = json.loads(clean_reasoning)
+                raw_text = clean_reasoning
+            except (json.JSONDecodeError, AttributeError):
+                # Look for JSON block in reasoning text
+                import re as _re
+                json_match = _re.search(r'\{[^{}]*"summary"[^{}]*\}', clean_reasoning, _re.DOTALL)
+                if json_match:
+                    raw_text = json_match.group(0)
+                else:
+                    raw_text = clean_reasoning
+
         summary = ""
         follow_up = []
         try:
