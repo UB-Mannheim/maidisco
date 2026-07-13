@@ -6,6 +6,7 @@ Provides a common interface for Primo and VuFind.
 """
 
 import json
+import logging
 import re
 
 import markdown
@@ -33,6 +34,8 @@ MD_ALLOWED_ATTRIBUTES = {
     "th": {"colspan", "rowspan", "scope"},
     "ol": {"start", "type"},
 }
+
+logger = logging.getLogger(__name__)
 
 
 class DiscoverySystem:
@@ -70,18 +73,15 @@ class DiscoverySystem:
         reasoning = getattr(msg, "reasoning_content", None) or ""
 
         if not reasoning:
-            print(f"[DEBUG] model={resp.model}")
-            print(f"[DEBUG] content type={type(content).__name__} len={len(content)}")
-            print(f"[DEBUG] reasoning_content={getattr(msg, 'reasoning_content', 'MISSING')!r}")
-            for attr in ("role", "function_call", "tool_calls", "audio", "refusal"):
-                val = getattr(msg, attr, "MISSING")
-                if val not in (None, "MISSING"):
-                    print(f"[DEBUG] msg.{attr}={val!r}")
+            logger.warning("reasoning_content empty — model=%s content_len=%d content_type=%s",
+                           resp.model, len(content), type(content).__name__)
+            raw_reasoning = getattr(msg, "reasoning_content", "MISSING")
+            logger.debug("reasoning_content raw=%r", raw_reasoning)
             extra = getattr(msg, "additional_kwargs", None)
             if extra:
-                print(f"[DEBUG] additional_kwargs={extra!r}")
+                logger.debug("additional_kwargs=%r", extra)
             if hasattr(msg, "model_extra") and msg.model_extra:
-                print(f"[DEBUG] model_extra={msg.model_extra!r}")
+                logger.debug("model_extra=%r", msg.model_extra)
 
         return content, reasoning
 
