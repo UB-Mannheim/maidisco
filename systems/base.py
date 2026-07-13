@@ -53,12 +53,13 @@ class DiscoverySystem:
         self.model = model
         self.max_results = max_results
 
-    def translate_query(self, nl_query):
+    def translate_query(self, nl_query, model=None):
         """
         Translate natural language query to system-specific search parameters.
 
         Args:
             nl_query: Natural language search query
+            model: Model name to use (optional, defaults to self.model)
 
         Returns:
             dict: System-specific search parameters
@@ -103,13 +104,14 @@ class DiscoverySystem:
         """
         raise NotImplementedError
 
-    def summarize_results(self, nl_query, items):
+    def summarize_results(self, nl_query, items, model=None):
         """
         Summarize search results using LLM.
 
         Args:
             nl_query: Original natural language query
             items: List of normalized search results (may include marc_data)
+            model: Model name to use (optional, defaults to self.model)
 
         Returns:
             tuple: (Markup: sanitized HTML summary, list: follow-up queries)
@@ -174,7 +176,7 @@ class DiscoverySystem:
 
         try:
             resp = self.client.chat.completions.create(
-                model=self.model,
+                model=model or self.model,
                 messages=[
                     {"role": "system", "content": system},
                     {"role": "user", "content": prompt},

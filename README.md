@@ -82,7 +82,7 @@ Key environment variables in `.env`:
 |----------|-------------|
 | `OPENAI_API_KEY` | API key for OpenAI-compatible LLM (required) |
 | `OPENAI_API_URL` | Base URL for the LLM API (e.g., `http://localhost:11434/v1` for Ollama) |
-| `OPENAI_MODEL` | Model name to use (default: `gpt-4`) |
+| `LLM_MODELS` | Comma-separated list of available models (first is default, e.g. `gpt-4,llama3,mistral`) |
 | `VUFIND_SEARCH_ENDPOINT` | VuFind API search endpoint URL |
 | `PRIMO_SEARCH_ENDPOINT` | Primo API search endpoint URL |
 | `PRIMO_APIKEY` | Primo API key (optional) |

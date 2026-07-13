@@ -61,7 +61,7 @@ class VuFindSystem(DiscoverySystem):
             self._format_facets = []
         return self._format_facets
 
-    def translate_query(self, nl_query):
+    def translate_query(self, nl_query, model=None):
         """
         Convert natural language query to VuFind parameters via OpenAI.
         Uses structured prompt to mitigate prompt injection.

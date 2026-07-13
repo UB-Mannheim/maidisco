@@ -40,7 +40,7 @@ PORT = int(os.environ.get("PORT", "5001"))
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 OPENAI_API_URL = os.environ.get("OPENAI_API_URL")
-OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4")
+LLM_MODELS = [m.strip() for m in os.environ.get("LLM_MODELS", "gpt-4").split(",") if m.strip()]
 
 VUFIND_SEARCH_ENDPOINT = os.environ.get("VUFIND_SEARCH_ENDPOINT")
 PRIMO_SEARCH_ENDPOINT = os.environ.get("PRIMO_SEARCH_ENDPOINT")
@@ -92,9 +92,9 @@ client = OpenAI(base_url=OPENAI_API_URL, api_key=OPENAI_API_KEY)
 
 systems = {}
 if VUFIND_SEARCH_ENDPOINT:
-    systems["vufind"] = VuFindSystem(client, OPENAI_MODEL, max_results=MAX_RESULTS)
+    systems["vufind"] = VuFindSystem(client, LLM_MODELS[0], max_results=MAX_RESULTS)
 if PRIMO_SEARCH_ENDPOINT:
-    systems["primo"] = PrimoSystem(client, OPENAI_MODEL, max_results=MAX_RESULTS)
+    systems["primo"] = PrimoSystem(client, LLM_MODELS[0], max_results=MAX_RESULTS)
 
 if not systems:
     raise RuntimeError(
@@ -211,6 +211,8 @@ def index():
         search_class_label="",
         show_filters="vufind" in systems,
         format_facets=format_facets,
+        models=LLM_MODELS,
+        selected_model=LLM_MODELS[0],
         matomo_url=MATOMO_URL,
         matomo_site_id=MATOMO_SITE_ID,
         legal_notice_url=LEGAL_NOTICE_URL,
@@ -227,6 +229,11 @@ def search():
     if not nl:
         return index()
 
+    # Get selected model (default to first)
+    selected_model = request.form.get("model", LLM_MODELS[0]).strip()
+    if selected_model not in LLM_MODELS:
+        selected_model = LLM_MODELS[0]
+
     # Detect system
     system = detect_system(nl)
     if not system:
@@ -238,6 +245,8 @@ def search():
             search_class_label="",
             show_filters=False,
             format_facets=[],
+            models=LLM_MODELS,
+            selected_model=selected_model,
             matomo_url=MATOMO_URL,
             matomo_site_id=MATOMO_SITE_ID,
             impressum_url=IMPRESSUM_URL,
@@ -262,7 +271,7 @@ def search():
 
     # Translate query
     try:
-        translated = system.translate_query(nl)
+        translated = system.translate_query(nl, model=selected_model)
     except Exception as e:
         return render_template(
             "index.html",
@@ -270,6 +279,8 @@ def search():
             error=str(e),
             system_name=system.name.upper(),
             show_filters=system.name == "vufind",
+            models=LLM_MODELS,
+            selected_model=selected_model,
             matomo_url=MATOMO_URL,
             matomo_site_id=MATOMO_SITE_ID,
             legal_notice_url=LEGAL_NOTICE_URL,
@@ -297,7 +308,7 @@ def search():
     else:
         search_class = translated.get("search_class", "catalog")
         results = system.normalize_results(raw, search_class=search_class)
-        summary_html, follow_up_queries = system.summarize_results(nl, results)
+        summary_html, follow_up_queries = system.summarize_results(nl, results, model=selected_model)
         if system.name == "vufind":
             filters = params.get("filters", {})
 
@@ -326,6 +337,8 @@ def search():
         search_class_label=search_class_label,
         show_filters=system.name == "vufind" and search_class == "catalog",
         format_facets=format_facets,
+        models=LLM_MODELS,
+        selected_model=selected_model,
         matomo_url=MATOMO_URL,
         matomo_site_id=MATOMO_SITE_ID,
         legal_notice_url=LEGAL_NOTICE_URL,
@@ -342,7 +355,7 @@ if __name__ == "__main__":
     print("maidisco — Mannheim Intelligent Discovery System")
     print("=" * 50)
     print(f"Configured systems: {', '.join(systems.keys())}")
-    print(f"Model: {OPENAI_MODEL}")
+    print(f"Models: {', '.join(LLM_MODELS)}")
     print(f"URL: http://{HOST}:{PORT}/")
     print("=" * 50)
     app.run(debug=DEBUGMODE, host=HOST, port=PORT)
