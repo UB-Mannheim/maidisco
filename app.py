@@ -24,6 +24,7 @@ import warnings
 from collections import defaultdict
 from urllib.parse import urlparse
 
+import markdown
 import requests
 from dotenv import load_dotenv
 from flask import Flask, abort, render_template, request
@@ -332,7 +333,7 @@ def search():
         results=results,
         summary_html=summary_html,
         follow_up_queries=follow_up_queries,
-        thinking=thinking,
+        thinking_html=markdown.markdown(thinking) if thinking else "",
         filters=filters,
         error=error,
         system_name=system.name.upper(),
