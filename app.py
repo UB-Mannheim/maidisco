@@ -301,6 +301,7 @@ def search():
     results = []
     summary_html = ""
     follow_up_queries = []
+    thinking = ""
     filters = {}
 
     if isinstance(raw, dict) and raw.get("error"):
@@ -308,7 +309,7 @@ def search():
     else:
         search_class = translated.get("search_class", "catalog")
         results = system.normalize_results(raw, search_class=search_class)
-        summary_html, follow_up_queries = system.summarize_results(nl, results, model=selected_model)
+        summary_html, follow_up_queries, thinking = system.summarize_results(nl, results, model=selected_model)
         if system.name == "vufind":
             filters = params.get("filters", {})
 
@@ -331,6 +332,7 @@ def search():
         results=results,
         summary_html=summary_html,
         follow_up_queries=follow_up_queries,
+        thinking=thinking,
         filters=filters,
         error=error,
         system_name=system.name.upper(),

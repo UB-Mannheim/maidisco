@@ -67,7 +67,8 @@ class PrimoSystem(DiscoverySystem):
                 f"Verbindung zum Sprachmodell fehlgeschlagen: {e}"
             ) from e
 
-        text = self._extract_response_text(resp).strip()
+        content, _reasoning = self._extract_response_text(resp)
+        text = content.strip()
         text = self._strip_markdown_fences(text)
         try:
             return json.loads(text)

@@ -330,6 +330,13 @@ footer a:hover { color: var(--brand-light); }
   <pre>{{ translated }}</pre>
 </details>
 
+{% if thinking %}
+<details class="query-debug">
+  <summary>AI thinking</summary>
+  <pre>{{ thinking }}</pre>
+</details>
+{% endif %}
+
 {% endif %}
 
 {% if legal_notice_url or privacy_url or accessibility_url or sign_language_url or easy_language_url %}

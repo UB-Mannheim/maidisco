@@ -59,15 +59,16 @@ class DiscoverySystem:
 
         Some models (e.g. Qwen-Thinking, DeepSeek) return the final answer
         in message.content but may also use message.reasoning_content for
-        the thinking process. If content is None or empty, fall back to
-        reasoning_content.
+        the thinking process.
+
+        Returns:
+            tuple: (content, reasoning) where content is the final answer
+                   and reasoning is the thinking process (may be empty).
         """
         msg = resp.choices[0].message
         content = getattr(msg, "content", None) or ""
-        if content.strip():
-            return content
         reasoning = getattr(msg, "reasoning_content", None) or ""
-        return reasoning
+        return content, reasoning
 
     def translate_query(self, nl_query, model=None):
         """
@@ -130,10 +131,11 @@ class DiscoverySystem:
             model: Model name to use (optional, defaults to self.model)
 
         Returns:
-            tuple: (Markup: sanitized HTML summary, list: follow-up queries)
+            tuple: (Markup: sanitized HTML summary, list: follow-up queries,
+                    str: thinking/reasoning content if available)
         """
         if not items:
-            return ("Keine Ergebnisse zum Zusammenfassen.", [])
+            return ("Keine Ergebnisse zum Zusammenfassen.", [], "")
 
         text_items = []
         for i, it in enumerate(items, start=1):
@@ -208,9 +210,11 @@ class DiscoverySystem:
                     '<div>Verbindung zum Sprachmodell fehlgeschlagen.</div></div>'
                 ),
                 [],
+                "",
             )
 
-        raw_text = self._extract_response_text(resp).strip()
+        content, reasoning = self._extract_response_text(resp)
+        raw_text = content.strip()
         raw_text = self._strip_markdown_fences(raw_text)
 
         summary = ""
@@ -228,7 +232,7 @@ class DiscoverySystem:
             tags=MD_ALLOWED_TAGS,
             attributes=MD_ALLOWED_ATTRIBUTES,
         )
-        return (Markup(safe_html), follow_up)
+        return (Markup(safe_html), follow_up, reasoning.strip())
 
     def _safe_url(self, url):
         """Validate URL to prevent javascript: URIs and other dangerous schemes."""
