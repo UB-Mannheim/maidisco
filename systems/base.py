@@ -194,7 +194,7 @@ class DiscoverySystem:
                 [],
             )
 
-        raw_text = resp.choices[0].message.content.strip()
+        raw_text = (resp.choices[0].message.content or "").strip()
         raw_text = self._strip_markdown_fences(raw_text)
 
         summary = ""
