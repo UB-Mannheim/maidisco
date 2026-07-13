@@ -264,7 +264,16 @@ class DiscoverySystem:
             summary = data.get("summary", raw_text)
             follow_up = data.get("follow_up_queries", [])
         except (json.JSONDecodeError, AttributeError):
-            summary = raw_text
+            # Smaller models sometimes emit unescaped newlines in JSON strings.
+            # Try to extract the summary value between "summary" and "follow_up_queries".
+            m = re.search(
+                r'"summary"\s*:\s*"(.*?)(?:",\s*"follow_up_queries"|\s*}\s*$)',
+                raw_text, re.DOTALL,
+            )
+            if m:
+                summary = m.group(1)
+            else:
+                summary = raw_text
 
         raw_html = markdown.markdown(summary)
         safe_html = nh3.clean(
