@@ -223,7 +223,7 @@ class DiscoverySystem:
                     {"role": "system", "content": system},
                     {"role": "user", "content": prompt},
                 ],
-                max_tokens=1200,
+                max_tokens=4000,
                 temperature=0.2,
                 timeout=120,
             )
