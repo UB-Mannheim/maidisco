@@ -106,7 +106,7 @@ class VuFindSystem(DiscoverySystem):
             raise RuntimeError(
                 f"Verbindung zum Sprachmodell fehlgeschlagen: {e}"
             ) from e
-        text = (resp.choices[0].message.content or "").strip()
+        text = self._extract_response_text(resp).strip()
         text = self._strip_markdown_fences(text)
         try:
             return json.loads(text)

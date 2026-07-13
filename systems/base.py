@@ -53,6 +53,22 @@ class DiscoverySystem:
         self.model = model
         self.max_results = max_results
 
+    @staticmethod
+    def _extract_response_text(resp):
+        """Extract text from LLM response, handling thinking/reasoning models.
+
+        Some models (e.g. Qwen-Thinking, DeepSeek) return the final answer
+        in message.content but may also use message.reasoning_content for
+        the thinking process. If content is None or empty, fall back to
+        reasoning_content.
+        """
+        msg = resp.choices[0].message
+        content = getattr(msg, "content", None) or ""
+        if content.strip():
+            return content
+        reasoning = getattr(msg, "reasoning_content", None) or ""
+        return reasoning
+
     def translate_query(self, nl_query, model=None):
         """
         Translate natural language query to system-specific search parameters.
@@ -194,7 +210,7 @@ class DiscoverySystem:
                 [],
             )
 
-        raw_text = (resp.choices[0].message.content or "").strip()
+        raw_text = self._extract_response_text(resp).strip()
         raw_text = self._strip_markdown_fences(raw_text)
 
         summary = ""
