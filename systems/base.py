@@ -176,6 +176,10 @@ class DiscoverySystem:
 
         has_marc = any(it.get("marc_data") for it in items)
 
+        # Limit items sent to LLM: MARC records are large (up to 3000 chars each),
+        # so keep the prompt manageable for thinking models which need tokens for reasoning.
+        llm_limit = min(self.max_results, 5) if has_marc else self.max_results
+
         system = (
             "You are a helpful academic research assistant."
             "\nReturn valid JSON only with keys: 'summary' (string, Markdown), "
@@ -193,7 +197,7 @@ class DiscoverySystem:
                 f"{nl_query}\n"
                 "---\n\n"
                 "RECORDS:\n---\n"
-                + "\n\n".join(text_items[:self.max_results])
+                + "\n\n".join(text_items[:llm_limit])
                 + "\n---\n\n"
                 "For records with MARC_DATA: extract key information (name, dates, "
                 "affiliations, profession, places, description) and present it clearly.\n"
@@ -209,7 +213,7 @@ class DiscoverySystem:
                 f"{nl_query}\n"
                 "---\n\n"
                 "SEARCH_RESULTS:\n---\n"
-                + "\n".join(text_items[:self.max_results])
+                + "\n".join(text_items[:llm_limit])
                 + "\n---\n\n"
                 "Provide a concise summary (3-6 sentences), highlight relevant items, "
                 "and suggest 2-3 follow-up search queries.\n"
