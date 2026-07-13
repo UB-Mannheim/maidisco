@@ -257,9 +257,8 @@ footer a:hover { color: var(--brand-light); }
   <label for="nl">Search</label>
   <textarea id="nl" name="nl" rows="3" placeholder="Describe what you are looking for in natural language...">{{ query if query else '' }}</textarea>
 
-  {% if show_filters %}
-  <div class="filters-row{% if models|length <= 1 %} four-cols{% endif %}">
-    {% if models|length > 1 %}
+  {% if models|length > 1 %}
+  <div class="filters-row four-cols">
     <div>
       <label for="model">Model</label>
       <select id="model" name="model">
@@ -268,7 +267,11 @@ footer a:hover { color: var(--brand-light); }
         {% endfor %}
       </select>
     </div>
-    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if show_filters %}
+  <div class="filters-row">
     <div>
       <label for="language">Language</label>
       <select id="language" name="language">
