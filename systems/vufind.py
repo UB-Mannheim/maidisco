@@ -323,7 +323,7 @@ class VuFindSystem(DiscoverySystem):
     def total_results(self, raw_json):
         """Total hit count from the VuFind search API response."""
         if isinstance(raw_json, dict):
-            for key in ("total_results", "totalResults"):
+            for key in ("resultCount", "total_results", "totalResults"):
                 total = raw_json.get(key)
                 if isinstance(total, int):
                     return total
