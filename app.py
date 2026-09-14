@@ -144,8 +144,7 @@ def csrf_check():
     if not site and not origin:
         return
     if origin:
-        origin_host = urlparse(origin).hostname
-        if origin_host == request.host:
+        if urlparse(origin).netloc == request.host:
             return
     abort(403, "CSRF-Validierung fehlgeschlagen")
 
