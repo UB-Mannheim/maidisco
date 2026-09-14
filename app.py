@@ -160,9 +160,17 @@ API_RATE_LIMIT_WINDOW = 60
 _api_rate_limit_data = defaultdict(list)
 
 
+def _client_ip():
+    """Client IP, honoring X-Forwarded-For when running behind a reverse proxy."""
+    forwarded = request.headers.get("X-Forwarded-For", "")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.remote_addr or "unknown"
+
+
 def _check_rate_limit(data, limit, window):
     """Simple in-memory rate limiter per IP address."""
-    client_ip = request.remote_addr or "unknown"
+    client_ip = _client_ip()
     now = time.time()
     data[client_ip] = [t for t in data[client_ip] if now - t < window]
     if len(data[client_ip]) >= limit:
