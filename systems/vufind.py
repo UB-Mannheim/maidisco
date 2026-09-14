@@ -24,12 +24,14 @@ class VuFindSystem(DiscoverySystem):
 
     name = "vufind"
 
-    # Map common material type terms to valid VuFind format facet values
+    # Map common material type terms to valid VuFind format facet values.
+    # A term may map to several facet values; VuFind ORs multiple values
+    # of the same facet (e.g. "book" finds books and e-books).
     MATERIAL_TYPE_MAP = {
-        "article": "Journal",
-        "book": "Book",
-        "ebook": "eBook",
-        "conference": "Conference Proceeding",
+        "article": ["Journal"],
+        "book": ["Book", "eBook"],
+        "ebook": ["eBook"],
+        "conference": ["Conference Proceeding"],
     }
 
     def __init__(self, client, model, max_results=10):
@@ -202,9 +204,8 @@ class VuFindSystem(DiscoverySystem):
             entries.append(f"language:{filters['language']}")
         if filters.get("material_type"):
             mt = filters["material_type"].lower()
-            entries.append(
-                f"format:{self.MATERIAL_TYPE_MAP.get(mt, filters['material_type'])}"
-            )
+            for value in self.MATERIAL_TYPE_MAP.get(mt, [filters["material_type"]]):
+                entries.append(f"format:{value}")
         if filters.get("year_from"):
             entries.append(f"publishDate:[{filters['year_from']} TO *]")
         if filters.get("year_to"):
