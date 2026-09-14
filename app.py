@@ -38,7 +38,7 @@ load_dotenv()
 logging.basicConfig(level=logging.WARNING)
 
 # --- Configuration ---
-DEBUGMODE = os.environ.get("DEBUGMODE", False)
+DEBUGMODE = os.environ.get("DEBUGMODE", "").strip().lower() in ("1", "true", "yes", "on")
 HOST = os.environ.get("HOST", "127.0.0.1")
 PORT = int(os.environ.get("PORT", "5001"))
 
