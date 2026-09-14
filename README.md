@@ -70,6 +70,7 @@ Send a natural language query and receive a summary, follow-up suggestions, and 
 | `summary` | string | Plain text summary of the search results |
 | `follow_up_queries` | string[] | Suggested follow-up questions |
 | `search_url` | string | Direct URL to the equivalent classic catalog search (VuFind) |
+| `total_results` | integer \| null | Total hit count reported by the catalog, or `null` if not available |
 | `results` | object[] | Matching records (title, author, url, year) |
 
 **Rate limiting:** 10 requests per minute per IP (configurable via `API_RATE_LIMIT`).

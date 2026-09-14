@@ -320,6 +320,15 @@ class VuFindSystem(DiscoverySystem):
         except requests.exceptions.RequestException as e:
             return {"error": f"Unerwarteter Fehler bei der API-Anfrage: {e}"}
 
+    def total_results(self, raw_json):
+        """Total hit count from the VuFind search API response."""
+        if isinstance(raw_json, dict):
+            for key in ("total_results", "totalResults"):
+                total = raw_json.get(key)
+                if isinstance(total, int):
+                    return total
+        return None
+
     def normalize_results(self, raw_json, max_items=None, search_class="catalog"):
         """
         Normalize VuFind API JSON to list of dicts: title, authors, year, format, snippet, link

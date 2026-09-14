@@ -236,6 +236,7 @@ def _search_context(nl, selected_model, **overrides):
         "thinking_html": "",
         "filters": {},
         "search_url": "",
+        "total_results": None,
         "system_name": system_name,
         "search_class_label": "",
         "show_filters": "vufind" in systems,
@@ -290,11 +291,13 @@ def _run_search(nl, selected_model, user_filters=None):
         return overrides
 
     results = system.normalize_results(raw, search_class=search_class)
+    total_results = system.total_results(raw)
     summary_html, follow_up_queries, thinking = system.summarize_results(
         nl, results, model=selected_model
     )
     overrides.update({
         "results": results,
+        "total_results": total_results,
         "summary_html": summary_html,
         "follow_up_queries": follow_up_queries,
         "thinking_html": (
@@ -358,7 +361,7 @@ def api_search():
 
     Request:  {"query": "...", "model": "..."}
     Response: {"summary": "...", "follow_up_queries": [...],
-               "search_url": "...", "results": [...]}
+               "search_url": "...", "total_results": 42, "results": [...]}
     """
     if not _check_rate_limit(
         _api_rate_limit_data, API_RATE_LIMIT_REQUESTS, API_RATE_LIMIT_WINDOW
@@ -394,6 +397,7 @@ def api_search():
 
     search_class = translated.get("search_class", "catalog")
     results = system.normalize_results(raw, search_class=search_class)
+    total_results = system.total_results(raw)
     summary_html, follow_up_queries, _thinking = system.summarize_results(
         nl, results, model=selected_model
     )
@@ -403,6 +407,7 @@ def api_search():
             "summary": _strip_html(str(summary_html)),
             "follow_up_queries": follow_up_queries,
             "search_url": params.get("search_url", ""),
+            "total_results": total_results,
             "results": [
                 {
                     "title": r.get("title", ""),

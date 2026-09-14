@@ -199,6 +199,16 @@ class PrimoSystem(DiscoverySystem):
         except requests.exceptions.RequestException as e:
             return {"error": f"Unerwarteter Fehler bei der API-Anfrage: {e}"}
 
+    def total_results(self, raw_json):
+        """Total hit count from the Primo search API response (info.totalRecords)."""
+        if isinstance(raw_json, dict):
+            info = raw_json.get("info")
+            if isinstance(info, dict):
+                total = info.get("totalRecords")
+                if isinstance(total, int):
+                    return total
+        return None
+
     def normalize_results(self, raw_json, max_items=None, search_class="catalog"):
         """
         Convert institution-specific Primo JSON to a list of items.

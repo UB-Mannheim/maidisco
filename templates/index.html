@@ -167,6 +167,12 @@ header .system-info { color: var(--muted); font-size: .9rem; }
   font-size: 1rem; color: var(--brand); margin: .75rem 0 .25rem;
 }
 .summary-card ul, .summary-card ol { margin: .4rem 0; padding-left: 1.4rem; }
+.more-results {
+  margin: .6rem 0 0;
+  font-size: .85rem;
+  color: var(--muted);
+}
+.more-results a { font-weight: 600; }
 .summary-card code {
   background: rgba(0,0,0,.06);
   padding: .1rem .3rem;
@@ -342,6 +348,12 @@ footer a:hover { color: var(--brand-light); }
 <div class="section">
   <h2>AI Summary</h2>
   <div class="summary-card">{{ summary_html }}</div>
+  {% if total_results and total_results > results|length %}
+  <p class="more-results">
+    Insgesamt sind {{ total_results }} Treffer für diese Suche verfügbar, hier werden die ersten {{ results|length }} angezeigt.
+    {% if search_url %} <a href="{{ search_url }}" target="_blank" rel="noopener">Alle Ergebnisse im Katalog öffnen</a>{% endif %}
+  </p>
+  {% endif %}
 </div>
 {% endif %}
 

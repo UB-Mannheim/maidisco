@@ -251,6 +251,15 @@ class DiscoverySystem:
         """
         return ""
 
+    def total_results(self, raw_json):
+        """
+        Total number of hits reported by the search API.
+
+        Returns:
+            int: The total hit count, or None if the system does not report it.
+        """
+        return None
+
     def summarize_results(self, nl_query, items, model=None):
         """
         Summarize search results using LLM.
