@@ -26,12 +26,14 @@ from collections import defaultdict
 from urllib.parse import urlparse
 
 import markdown
+import nh3
 import requests
 from dotenv import load_dotenv
 from flask import Flask, abort, jsonify, render_template, request
 from openai import OpenAI
 
 from systems import PrimoSystem, VuFindSystem
+from systems.base import MD_ALLOWED_ATTRIBUTES, MD_ALLOWED_TAGS
 
 load_dotenv()
 
@@ -350,7 +352,15 @@ def search():
         results=results,
         summary_html=summary_html,
         follow_up_queries=follow_up_queries,
-        thinking_html=markdown.markdown(thinking) if thinking else "",
+        thinking_html=(
+            nh3.clean(
+                markdown.markdown(thinking),
+                tags=MD_ALLOWED_TAGS,
+                attributes=MD_ALLOWED_ATTRIBUTES,
+            )
+            if thinking
+            else ""
+        ),
         filters=filters,
         error=error,
         system_name=system.name.upper(),
