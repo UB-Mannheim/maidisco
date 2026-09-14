@@ -264,8 +264,11 @@ def search():
             selected_model=selected_model,
             matomo_url=MATOMO_URL,
             matomo_site_id=MATOMO_SITE_ID,
-            impressum_url=IMPRESSUM_URL,
-            datenschutz_url=DATENSCHUTZ_URL,
+            legal_notice_url=LEGAL_NOTICE_URL,
+            privacy_url=PRIVACY_URL,
+            accessibility_url=ACCESSIBILITY_URL,
+            sign_language_url=SIGN_LANGUAGE_URL,
+            easy_language_url=EASY_LANGUAGE_URL,
         )
 
     # Collect user filters (for systems that support them)
