@@ -14,6 +14,7 @@ import requests
 from systems.base import (
     DiscoverySystem,
     build_boolean_query,
+    format_query_term,
     normalize_concepts,
     normalize_terms,
 )
@@ -25,9 +26,9 @@ class VuFindSystem(DiscoverySystem):
     name = "vufind"
 
     # Map common material type terms to valid VuFind format facet values.
-    # A term may map to several facet values; VuFind ORs multiple values
-    # of the same facet. "Electronic" is a synonym of "eBook" in this
-    # catalog, so both are searched together.
+    # A term may map to several facet values; they are ORed into the main
+    # query. "Electronic" is a synonym of "eBook" in this catalog, so both
+    # are searched together.
     MATERIAL_TYPE_MAP = {
         "article": ["Journal"],
         "book": ["Book", "eBook", "Electronic"],
@@ -203,15 +204,20 @@ class VuFindSystem(DiscoverySystem):
         entries = []
         if filters.get("language"):
             entries.append(f"language:{filters['language']}")
-        if filters.get("material_type"):
-            mt = filters["material_type"].lower()
-            for value in self.MATERIAL_TYPE_MAP.get(mt, [filters["material_type"]]):
-                entries.append(f"format:{value}")
         if filters.get("year_from"):
             entries.append(f"publishDate:[{filters['year_from']} TO *]")
         if filters.get("year_to"):
             entries.append(f"publishDate:[* TO {filters['year_to']}]")
         return entries
+
+    def _format_clause(self, material_type):
+        """Build an OR-group of format: terms for a material_type value."""
+        mt = material_type.lower()
+        values = self.MATERIAL_TYPE_MAP.get(mt, [material_type])
+        terms = [f"format:{format_query_term(v)}" for v in values]
+        if len(terms) == 1:
+            return terms[0]
+        return "(" + " OR ".join(terms) + ")"
 
     def build_search_url(self, params):
         """Build the public VuFind search page URL for the given parameters."""
@@ -432,9 +438,21 @@ class VuFindSystem(DiscoverySystem):
 
         # Fallback: model returned the old flat "lookfor" string.
         if not lookfor:
-            lookfor = (translated.get("lookfor") or "").strip() or "*"
+            lookfor = (translated.get("lookfor") or "").strip()
 
-        rows = [(lookfor, "AllFields")]
+        translated_filters = translated.get("filters") or {}
+        if user_filters:
+            translated_filters.update(user_filters)
+        translated_filters = {k: v for k, v in translated_filters.items() if v}
+        material_type = translated_filters.pop("material_type", None)
+
+        # VuFind ANDs separate filter[] params, so a material-type match is an
+        # OR-group folded into the main query rather than filter[] entries.
+        if material_type:
+            fmt = self._format_clause(material_type)
+            lookfor = f"({lookfor}) AND {fmt}" if lookfor else fmt
+
+        rows = [(lookfor or "*", "AllFields")]
         for key, field in (
             ("field_author", "Author"),
             ("field_title", "Title"),
@@ -444,10 +462,6 @@ class VuFindSystem(DiscoverySystem):
             if value:
                 rows.append((value, field))
 
-        translated_filters = translated.get("filters") or {}
-        if user_filters:
-            translated_filters.update(user_filters)
-        translated_filters = {k: v for k, v in translated_filters.items() if v}
         translated["filters"] = translated_filters
 
         result = {
