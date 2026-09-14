@@ -1,9 +1,8 @@
 Flask
-requests
 openai
 python-dotenv
 markdown
 nh3>=0.3.6
-httpx[socks]
+httpx2[socks]
 requests[socks]
 gunicorn
