@@ -26,11 +26,12 @@ class VuFindSystem(DiscoverySystem):
 
     # Map common material type terms to valid VuFind format facet values.
     # A term may map to several facet values; VuFind ORs multiple values
-    # of the same facet (e.g. "book" finds books and e-books).
+    # of the same facet. "Electronic" is a synonym of "eBook" in this
+    # catalog, so both are searched together.
     MATERIAL_TYPE_MAP = {
         "article": ["Journal"],
-        "book": ["Book", "eBook"],
-        "ebook": ["eBook"],
+        "book": ["Book", "eBook", "Electronic"],
+        "ebook": ["eBook", "Electronic"],
         "conference": ["Conference Proceeding"],
     }
 
