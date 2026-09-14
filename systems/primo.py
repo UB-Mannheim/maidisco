@@ -153,7 +153,7 @@ class PrimoSystem(DiscoverySystem):
         except requests.exceptions.RequestException as e:
             return {"error": f"Unerwarteter Fehler bei der API-Anfrage: {e}"}
 
-    def normalize_results(self, raw_json, max_items=None):
+    def normalize_results(self, raw_json, max_items=None, search_class="catalog"):
         """
         Convert institution-specific Primo JSON to a list of items.
         Tries common 'docs', 'records', 'pnx', 'items' patterns.

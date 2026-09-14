@@ -119,7 +119,7 @@ class DiscoverySystem:
         """
         raise NotImplementedError
 
-    def normalize_results(self, raw_json, max_items=None):
+    def normalize_results(self, raw_json, max_items=None, search_class="catalog"):
         """
         Normalize raw API response to standard format.
 
