@@ -1,3 +1,11 @@
 /.env
 __pycache__/
 *.pyc
+
+# Piper TTS voice (downloaded on demand, ~60 MB — do not commit)
+/de_DE-thorsten-medium.onnx
+/de_DE-thorsten-medium.onnx.json
+
+# SIP prototypes: local secrets and C build tree
+test/sip-prototypes/**/.env
+test/sip-prototypes/pjsua2_prototype/pjproject/
