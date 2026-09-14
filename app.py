@@ -73,9 +73,12 @@ def _validate_endpoint(url, name):
     parsed = urlparse(url)
     if parsed.scheme not in ("https", "http"):
         raise RuntimeError(f"{name} must use http or https scheme")
-    if parsed.scheme == "http":
-        warnings.warn(f"{name} uses HTTP instead of HTTPS — not recommended for production")
     hostname = parsed.hostname or ""
+    # Loopback is a legitimate production configuration (same-host reverse
+    # proxy, e.g. VuFind -> maidisco on 127.0.0.1), so no warnings there.
+    loopback = hostname in ("localhost", "127.0.0.1", "::1")
+    if parsed.scheme == "http" and not loopback:
+        warnings.warn(f"{name} uses HTTP instead of HTTPS — not recommended for production")
     private_prefixes = (
         "127.", "10.", "192.168.",
         "172.16.", "172.17.", "172.18.", "172.19.", "172.20.", "172.21.",
@@ -83,7 +86,9 @@ def _validate_endpoint(url, name):
         "172.28.", "172.29.", "172.30.", "172.31.",
         "0.", "169.254.",
     )
-    if hostname == "localhost" or any(hostname.startswith(p) for p in private_prefixes):
+    if not loopback and (
+        hostname == "localhost" or any(hostname.startswith(p) for p in private_prefixes)
+    ):
         warnings.warn(f"{name} points to a private/local address — intended for development only")
 
 
