@@ -246,7 +246,7 @@ class PrimoSystem(DiscoverySystem):
 
         return results
 
-    def build_search_params(self, translated, user_filters):
+    def build_search_params(self, translated, user_filters=None):
         """
         Build Primo search parameters from translated query and user filters.
         """

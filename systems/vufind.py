@@ -331,12 +331,13 @@ class VuFindSystem(DiscoverySystem):
             )
         return results
 
-    def build_search_params(self, translated, user_filters):
+    def build_search_params(self, translated, user_filters=None):
         """
         Build VuFind search parameters from translated query and user filters.
         User filters override AI-detected filters.
         """
         translated_filters = translated.get("filters", {})
-        translated_filters.update(user_filters)
+        if user_filters:
+            translated_filters.update(user_filters)
         translated["filters"] = translated_filters
         return translated

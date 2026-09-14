@@ -132,13 +132,13 @@ class DiscoverySystem:
         """
         raise NotImplementedError
 
-    def build_search_params(self, translated, user_filters):
+    def build_search_params(self, translated, user_filters=None):
         """
         Build search parameters from translated query and user filters.
 
         Args:
             translated: Translated query parameters
-            user_filters: User-selected filters from the form
+            user_filters: User-selected filters from the form (optional)
 
         Returns:
             dict: System-specific search parameters
