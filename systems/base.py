@@ -275,6 +275,11 @@ class DiscoverySystem:
             else:
                 summary = raw_text
 
+        # Follow-up queries are rendered as links; only accept a short list of strings.
+        if not isinstance(follow_up, list):
+            follow_up = []
+        follow_up = [q for q in follow_up if isinstance(q, str)][:5]
+
         raw_html = markdown.markdown(summary)
         safe_html = nh3.clean(
             raw_html,

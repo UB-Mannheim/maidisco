@@ -340,7 +340,7 @@ footer a:hover { color: var(--brand-light); }
   <h2>Suggested follow-up queries</h2>
   <ul class="followup-list">
   {% for q in follow_up_queries %}
-    <li><a href="#" onclick="document.getElementById('nl').value='{{ q|e }}'; this.closest('form') ? this.closest('form').submit() : document.querySelector('form').submit(); return false;">{{ q }}</a></li>
+    <li><a href="#" data-followup="{{ q }}" onclick="document.getElementById('nl').value=this.getAttribute('data-followup'); document.querySelector('form').submit(); return false;">{{ q }}</a></li>
   {% endfor %}
   </ul>
 </div>
