@@ -52,6 +52,10 @@ class DiscoverySystem:
 
     name = "base"
 
+    # Total character budget for MARC data in the summary prompt.
+    # MARC blobs are large and small LLMs have limited context.
+    MARC_PROMPT_BUDGET = 12000
+
     def __init__(self, client, model, max_results=10):
         """
         Initialize the discovery system.
@@ -162,12 +166,15 @@ class DiscoverySystem:
             return ("Keine Ergebnisse zum Zusammenfassen.", [], "")
 
         text_items = []
+        marc_chars = 0
         for i, it in enumerate(items, start=1):
-            marc = it.get("marc_data", "")
+            # Include MARC data for LLM analysis, truncated to the shared
+            # budget so the prompt cannot exceed small-model context.
+            marc = it.get("marc_data", "")[: max(0, self.MARC_PROMPT_BUDGET - marc_chars)]
+            marc_chars += len(marc)
             if marc:
-                # Include MARC data for LLM analysis (truncated for context)
                 text_items.append(
-                    f"{i}. {it['title']}\nMARC_DATA:\n{marc[:3000]}"
+                    f"{i}. {it['title']}\nMARC_DATA:\n{marc}"
                 )
             else:
                 text_items.append(
