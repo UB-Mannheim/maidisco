@@ -28,7 +28,7 @@ class PrimoSystem(DiscoverySystem):
         self.tab = os.environ.get("PRIMO_TAB")
         self.vid = os.environ.get("PRIMO_VID")
 
-    def translate_query(self, nl_query):
+    def translate_query(self, nl_query, model=None):
         """
         Use the LLM to produce a structured query string or parameters that map to Primo's search syntax.
         Uses structured prompt to mitigate prompt injection.
@@ -54,13 +54,14 @@ class PrimoSystem(DiscoverySystem):
 
         try:
             resp = self.client.chat.completions.create(
-                model=self.model,
+                model=model or self.model,
                 messages=[
                     {"role": "system", "content": system},
                     {"role": "user", "content": prompt},
                 ],
                 max_tokens=400,
                 temperature=0.0,
+                timeout=60,
             )
         except Exception as e:
             raise RuntimeError(
@@ -252,5 +253,6 @@ class PrimoSystem(DiscoverySystem):
         params = {}
         q = translated.get("q") if isinstance(translated, dict) else None
         if q:
-            params["q"] = f"any,contains,{q}"
+            # query_params["q"] gets the "any,contains," prefix in call_search()
+            params["q"] = q
         return params
