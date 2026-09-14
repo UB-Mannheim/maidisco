@@ -47,6 +47,99 @@ if _log_file:
     logger.setLevel(logging.DEBUG)
 
 
+# ---------------------------------------------------------------------------
+# Boolean query construction
+#
+# The LLM returns structured "concept groups": a list of groups, where each
+# group is a list of synonymous / translated terms. Python deterministically
+# builds the boolean search string (groups joined with AND, terms within a
+# group joined with OR, excluded terms with NOT). Keeping the query syntax out
+# of the model output improves recall (synonym + DE/EN expansion) and makes the
+# generated query predictable and safe.
+#
+# Approach inspired by the smart search service at
+# Katholische Universität Eichstätt-Ingolstadt
+# (https://opac-ub.ku.de/vufind/Content/smart-search).
+# ---------------------------------------------------------------------------
+
+def format_query_term(term: str) -> str:
+    """Format one plain model-provided term as a safe search term.
+
+    Strips surrounding quotes, escapes backslashes/quotes, and wraps
+    multi-word phrases in quotes.
+    """
+    value = term.strip()
+    while len(value) >= 2 and value[0] == value[-1] == '"':
+        value = value[1:-1].strip()
+    value = value.replace("\\", "\\\\").replace('"', '\\"')
+    if not value:
+        return ""
+    if any(char.isspace() for char in value):
+        return f'"{value}"'
+    return value
+
+
+def normalize_concepts(raw) -> list:
+    """Coerce LLM output into a list of concept groups (list of term lists)."""
+    if not isinstance(raw, list):
+        return []
+    concepts = []
+    for group in raw:
+        if isinstance(group, str):
+            group = [group]
+        if not isinstance(group, list):
+            continue
+        terms = [t.strip() for t in group if isinstance(t, str) and t.strip()]
+        if terms:
+            concepts.append(terms)
+    return concepts
+
+
+def normalize_terms(raw) -> list:
+    """Coerce LLM output into a flat list of plain-text terms."""
+    if not isinstance(raw, list):
+        return []
+    return [t.strip() for t in raw if isinstance(t, str) and t.strip()]
+
+
+def build_boolean_query(concepts, excluded_terms=None) -> str:
+    """Build a boolean query from concept groups.
+
+    Each concept group becomes "(term OR term ...)"; groups are joined with
+    AND. Excluded terms become a trailing "NOT (term OR ...)" clause. Single
+    terms are emitted without parentheses.
+    """
+    groups: list = []
+    for concept in concepts or []:
+        terms: list = []
+        seen: set = set()
+        for raw_term in concept:
+            term = format_query_term(raw_term)
+            key = term.casefold()
+            if term and key not in seen:
+                terms.append(term)
+                seen.add(key)
+        if not terms:
+            continue
+        if len(terms) == 1:
+            groups.append(terms[0])
+        else:
+            groups.append("(" + " OR ".join(terms) + ")")
+
+    excluded: list = []
+    seen: set = set()
+    for raw in excluded_terms or []:
+        term = format_query_term(raw)
+        key = term.casefold()
+        if term and key not in seen:
+            excluded.append(term)
+            seen.add(key)
+    if excluded:
+        groups.append("NOT (" + " OR ".join(excluded) + ")")
+
+    return " AND ".join(groups)
+
+
 class DiscoverySystem:
     """Base class for discovery system integrations."""
 

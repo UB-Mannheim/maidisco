@@ -164,6 +164,13 @@ Key environment variables in `.env`:
 - SSRF prevention (validates endpoint URLs at startup)
 - Structured LLM prompts to mitigate prompt injection attacks
 
+## Credits
+
+The structured concept-group query generation — synonym groups combined with
+AND/OR, boolean exclusions, and deterministic query building in Python — is
+inspired by the smart search service at
+[Katholische Universität Eichstätt-Ingolstadt](https://opac-ub.ku.de/vufind/Content/smart-search).
+
 ## Notice
 
 This is an experimental proof of concept.
