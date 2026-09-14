@@ -257,8 +257,7 @@ class DiscoverySystem:
                 raw_text = clean_reasoning
             except (json.JSONDecodeError, AttributeError):
                 # Look for JSON block in reasoning text
-                import re as _re
-                json_match = _re.search(r'\{[^{}]*"summary"[^{}]*\}', clean_reasoning, _re.DOTALL)
+                json_match = re.search(r'\{[^{}]*"summary"[^{}]*\}', clean_reasoning, re.DOTALL)
                 if json_match:
                     raw_text = json_match.group(0)
                 else:

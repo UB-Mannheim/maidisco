@@ -6,6 +6,7 @@ VuFind discovery system integration.
 
 import json
 import os
+import re
 
 import requests
 
@@ -227,8 +228,6 @@ class VuFindSystem(DiscoverySystem):
         """
         if max_items is None:
             max_items = self.max_results
-
-        import re
 
         results = []
         records = raw_json.get("records", [])
