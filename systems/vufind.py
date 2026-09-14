@@ -42,6 +42,10 @@ class VuFindSystem(DiscoverySystem):
             "VUFIND_SEARCH_ENDPOINT",
             "https://your-vufind-instance.example.com/api/search",
         )
+        # Public base URL of the VuFind web UI, used for catalog links shown
+        # to users. Optional: defaults to the API endpoint's base (correct
+        # when the API is served from the same web root as the catalog).
+        self.web_base = os.environ.get("VUFIND_WEB_URL", "").rstrip("/")
         # Derive authority and web endpoints from base endpoint
         base = self.endpoint.rsplit("/search", 1)[0]
         self.authority_endpoint = f"{base}/authority/search"
@@ -224,7 +228,7 @@ class VuFindSystem(DiscoverySystem):
         rows = params.get("rows") or []
         if not rows:
             return ""
-        base = self.endpoint.rsplit("/api/", 1)[0].rstrip("/")
+        base = self.web_base or self.endpoint.rsplit("/api/", 1)[0].rstrip("/")
         pairs = self._row_pairs(rows)
         for entry in self._filter_entries(params.get("filters") or {}):
             pairs.append(("filter[]", entry))

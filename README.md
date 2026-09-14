@@ -148,6 +148,7 @@ Key environment variables in `.env`:
 | `OPENAI_API_URL` | Base URL for the LLM API (e.g., `http://localhost:11434/v1` for Ollama) |
 | `LLM_MODELS` | Comma-separated list of available models (first is default, e.g. `gpt-4,llama3,mistral`) |
 | `VUFIND_SEARCH_ENDPOINT` | VuFind API search endpoint URL |
+| `VUFIND_WEB_URL` | Public base URL of the VuFind web UI for user-facing catalog links (optional, defaults to the API endpoint's base) |
 | `PRIMO_SEARCH_ENDPOINT` | Primo API search endpoint URL |
 | `PRIMO_APIKEY` | Primo API key (optional) |
 | `PRIMO_SCOPE` | Primo scope parameter |
