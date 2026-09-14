@@ -7,6 +7,7 @@ VuFind discovery system integration.
 import json
 import os
 import re
+from urllib.parse import quote, urlencode
 
 import requests
 
@@ -168,6 +169,49 @@ class VuFindSystem(DiscoverySystem):
         data["excluded_terms"] = normalize_terms(data.get("excluded_terms"))
         return data
 
+    def _row_pairs(self, rows):
+        """Build lookfor/type/bool/join parameter pairs from search rows."""
+        pairs = []
+        if len(rows) == 1:
+            term, field = rows[0]
+            pairs.append(("lookfor", term or "*"))
+            pairs.append(("type", field or "AllFields"))
+        else:
+            for i, (term, field) in enumerate(rows):
+                pairs.append((f"lookfor{i}[]", term or "*"))
+                pairs.append((f"type{i}[]", field or "AllFields"))
+                if i < len(rows) - 1:
+                    pairs.append((f"bool{i}[]", "AND"))
+            pairs.append(("join", "AND"))
+        return pairs
+
+    def _filter_entries(self, filters):
+        """Build filter[] entries from the filter dict."""
+        entries = []
+        if filters.get("language"):
+            entries.append(f"language:{filters['language']}")
+        if filters.get("material_type"):
+            mt = filters["material_type"].lower()
+            entries.append(
+                f"format:{self.MATERIAL_TYPE_MAP.get(mt, filters['material_type'])}"
+            )
+        if filters.get("year_from"):
+            entries.append(f"publishDate:[{filters['year_from']} TO *]")
+        if filters.get("year_to"):
+            entries.append(f"publishDate:[* TO {filters['year_to']}]")
+        return entries
+
+    def build_search_url(self, params):
+        """Build the public VuFind search page URL for the given parameters."""
+        rows = params.get("rows") or []
+        if not rows:
+            return ""
+        base = self.endpoint.rsplit("/api/", 1)[0].rstrip("/")
+        pairs = self._row_pairs(rows)
+        for entry in self._filter_entries(params.get("filters") or {}):
+            pairs.append(("filter[]", entry))
+        return f"{base}/Search/Results?{urlencode(pairs, quote_via=quote)}"
+
     def call_search(self, params):
         """
         Call VuFind REST API with filters.
@@ -186,17 +230,8 @@ class VuFindSystem(DiscoverySystem):
         # multi-field search (e.g. topic + author + title combined with AND).
         rows = params.get("rows") or [("*", "AllFields")]
         query_params = {"limit": self.max_results}
-        if len(rows) == 1:
-            term, field = rows[0]
-            query_params["lookfor"] = term or "*"
-            query_params["type"] = field or "AllFields"
-        else:
-            for i, (term, field) in enumerate(rows):
-                query_params[f"lookfor{i}[]"] = term or "*"
-                query_params[f"type{i}[]"] = field or "AllFields"
-                if i < len(rows) - 1:
-                    query_params[f"bool{i}[]"] = "AND"
-            query_params["join"] = "AND"
+        for key, value in self._row_pairs(rows):
+            query_params[key] = value
 
         # Authority and web have limited field sets
         if search_class == "catalog":
@@ -212,22 +247,7 @@ class VuFindSystem(DiscoverySystem):
 
         # Filters only apply to catalog search
         if search_class == "catalog":
-            filters = params.get("filters", {})
-            query_params["filter[]"] = []
-            if "language" in filters and filters["language"]:
-                query_params["filter[]"].append(f"language:{filters['language']}")
-            if "material_type" in filters and filters["material_type"]:
-                mt = filters["material_type"].lower()
-                format_value = self.MATERIAL_TYPE_MAP.get(mt, filters["material_type"])
-                query_params["filter[]"].append(f"format:{format_value}")
-            if "year_from" in filters and filters["year_from"]:
-                query_params["filter[]"].append(
-                    f"publishDate:[{filters['year_from']} TO *]"
-                )
-            if "year_to" in filters and filters["year_to"]:
-                query_params["filter[]"].append(
-                    f"publishDate:[* TO {filters['year_to']}]"
-                )
+            query_params["filter[]"] = self._filter_entries(params.get("filters", {}))
 
         try:
             r = requests.get(endpoint, params=query_params, timeout=15)
@@ -418,8 +438,10 @@ class VuFindSystem(DiscoverySystem):
         translated_filters = {k: v for k, v in translated_filters.items() if v}
         translated["filters"] = translated_filters
 
-        return {
+        result = {
             "search_class": translated.get("search_class") or "catalog",
             "rows": rows,
             "filters": translated_filters,
         }
+        result["search_url"] = self.build_search_url(result)
+        return result

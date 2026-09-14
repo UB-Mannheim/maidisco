@@ -127,6 +127,22 @@ header .system-info { color: var(--muted); font-size: .9rem; }
 .error-box strong { color: #935116; }
 .error-box div { color: #7a4b10; margin-top: .3rem; }
 
+/* Catalog link */
+.catalog-link {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .8rem 1.25rem;
+  margin-bottom: 1.5rem;
+  font-size: .9rem;
+  color: var(--muted);
+}
+.catalog-link a { font-weight: 600; }
+
 /* Sections */
 .section { margin-bottom: 2rem; }
 .section h2 {
@@ -312,6 +328,13 @@ footer a:hover { color: var(--brand-light); }
 <div class="error-box">
   <strong>Fehler bei der Suche:</strong>
   <div>{{ error }}</div>
+</div>
+{% endif %}
+
+{% if search_url %}
+<div class="catalog-link">
+  <span>Katalog-Such-URL (Boolean Query):</span>
+  <a href="{{ search_url }}" target="_blank" rel="noopener">Öffnen</a>
 </div>
 {% endif %}
 

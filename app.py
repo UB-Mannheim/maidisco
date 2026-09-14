@@ -216,9 +216,9 @@ def detect_system(nl_query):
     return None
 
 
-# --- Flask Routes ---
-@app.route("/", methods=["GET"])
-def index():
+# --- Search Pipeline ---
+def _search_context(nl, selected_model, **overrides):
+    """Template context shared by all index.html renders."""
     system_name = None
     format_facets = []
     if "vufind" in systems:
@@ -226,119 +226,51 @@ def index():
         format_facets = systems["vufind"].get_format_facets()
     elif "primo" in systems:
         system_name = "Primo"
+    ctx = {
+        "query": nl,
+        "error": None,
+        "translated": None,
+        "results": [],
+        "summary_html": "",
+        "follow_up_queries": [],
+        "thinking_html": "",
+        "filters": {},
+        "search_url": "",
+        "system_name": system_name,
+        "search_class_label": "",
+        "show_filters": "vufind" in systems,
+        "format_facets": format_facets,
+        "models": LLM_MODELS,
+        "selected_model": selected_model,
+        "matomo_url": MATOMO_URL,
+        "matomo_site_id": MATOMO_SITE_ID,
+        "legal_notice_url": LEGAL_NOTICE_URL,
+        "privacy_url": PRIVACY_URL,
+        "accessibility_url": ACCESSIBILITY_URL,
+        "sign_language_url": SIGN_LANGUAGE_URL,
+        "easy_language_url": EASY_LANGUAGE_URL,
+    }
+    ctx.update(overrides)
+    return ctx
 
-    return render_template(
-        "index.html",
-        query=None,
-        error=None,
-        system_name=system_name,
-        search_class_label="",
-        show_filters="vufind" in systems,
-        format_facets=format_facets,
-        models=LLM_MODELS,
-        selected_model=LLM_MODELS[0],
-        matomo_url=MATOMO_URL,
-        matomo_site_id=MATOMO_SITE_ID,
-        legal_notice_url=LEGAL_NOTICE_URL,
-        privacy_url=PRIVACY_URL,
-        accessibility_url=ACCESSIBILITY_URL,
-        sign_language_url=SIGN_LANGUAGE_URL,
-        easy_language_url=EASY_LANGUAGE_URL,
-    )
 
-
-@app.route("/search", methods=["POST"])
-def search():
-    nl = request.form.get("nl", "").strip()
-    if not nl:
-        return index()
-
-    # Get selected model (default to first)
-    selected_model = request.form.get("model", LLM_MODELS[0]).strip()
-    if selected_model not in LLM_MODELS:
-        selected_model = LLM_MODELS[0]
-
-    # Detect system
+def _run_search(nl, selected_model, user_filters=None):
+    """Run the full search pipeline; returns context overrides."""
     system = detect_system(nl)
     if not system:
-        return render_template(
-            "index.html",
-            query=nl,
-            error="Kein Discovery-System konfiguriert.",
-            system_name=None,
-            search_class_label="",
-            show_filters=False,
-            format_facets=[],
-            models=LLM_MODELS,
-            selected_model=selected_model,
-            matomo_url=MATOMO_URL,
-            matomo_site_id=MATOMO_SITE_ID,
-            legal_notice_url=LEGAL_NOTICE_URL,
-            privacy_url=PRIVACY_URL,
-            accessibility_url=ACCESSIBILITY_URL,
-            sign_language_url=SIGN_LANGUAGE_URL,
-            easy_language_url=EASY_LANGUAGE_URL,
-        )
+        return {"error": "Kein Discovery-System konfiguriert.", "show_filters": False}
 
-    # Collect user filters (for systems that support them)
-    user_filters = {}
-    if system.name == "vufind":
-        language = request.form.get("language", "").strip()
-        material_type = request.form.get("material_type", "").strip()
-        year_from = request.form.get("year_from", "").strip()
-        year_to = request.form.get("year_to", "").strip()
-        if language:
-            user_filters["language"] = language
-        if material_type:
-            user_filters["material_type"] = material_type
-        if year_from:
-            user_filters["year_from"] = year_from
-        if year_to:
-            user_filters["year_to"] = year_to
-
-    # Translate query
     try:
         translated = system.translate_query(nl, model=selected_model)
     except Exception as e:
-        return render_template(
-            "index.html",
-            query=nl,
-            error=str(e),
-            system_name=system.name.upper(),
-            show_filters=system.name == "vufind",
-            models=LLM_MODELS,
-            selected_model=selected_model,
-            matomo_url=MATOMO_URL,
-            matomo_site_id=MATOMO_SITE_ID,
-            legal_notice_url=LEGAL_NOTICE_URL,
-            privacy_url=PRIVACY_URL,
-            accessibility_url=ACCESSIBILITY_URL,
-            sign_language_url=SIGN_LANGUAGE_URL,
-            easy_language_url=EASY_LANGUAGE_URL,
-        )
+        return {
+            "error": str(e),
+            "system_name": system.name.upper(),
+            "show_filters": system.name == "vufind",
+        }
 
-    # Build search parameters
     params = system.build_search_params(translated, user_filters)
-
-    # Call search
     raw = system.call_search(params)
-
-    # Process results
-    error = None
-    results = []
-    summary_html = ""
-    follow_up_queries = []
-    thinking = ""
-    filters = {}
-
-    if isinstance(raw, dict) and raw.get("error"):
-        error = raw["error"]
-    else:
-        search_class = translated.get("search_class", "catalog")
-        results = system.normalize_results(raw, search_class=search_class)
-        summary_html, follow_up_queries, thinking = system.summarize_results(nl, results, model=selected_model)
-        if system.name == "vufind":
-            filters = params.get("filters", {})
 
     search_class = translated.get("search_class", "catalog")
     search_class_labels = {
@@ -346,20 +278,26 @@ def search():
         "authority": "Normdaten",
         "web": "Webseiten",
     }
-    search_class_label = search_class_labels.get(search_class, search_class)
+    overrides = {
+        "translated": json.dumps(translated, indent=2),
+        "system_name": system.name.upper(),
+        "search_class_label": search_class_labels.get(search_class, search_class),
+        "search_url": params.get("search_url", ""),
+    }
 
-    format_facets = []
-    if system.name == "vufind":
-        format_facets = system.get_format_facets()
+    if isinstance(raw, dict) and raw.get("error"):
+        overrides["error"] = raw["error"]
+        return overrides
 
-    return render_template(
-        "index.html",
-        query=nl,
-        translated=json.dumps(translated, indent=2),
-        results=results,
-        summary_html=summary_html,
-        follow_up_queries=follow_up_queries,
-        thinking_html=(
+    results = system.normalize_results(raw, search_class=search_class)
+    summary_html, follow_up_queries, thinking = system.summarize_results(
+        nl, results, model=selected_model
+    )
+    overrides.update({
+        "results": results,
+        "summary_html": summary_html,
+        "follow_up_queries": follow_up_queries,
+        "thinking_html": (
             nh3.clean(
                 markdown.markdown(thinking),
                 tags=MD_ALLOWED_TAGS,
@@ -368,22 +306,44 @@ def search():
             if thinking
             else ""
         ),
-        filters=filters,
-        error=error,
-        system_name=system.name.upper(),
-        search_class_label=search_class_label,
-        show_filters=system.name == "vufind" and search_class == "catalog",
-        format_facets=format_facets,
-        models=LLM_MODELS,
-        selected_model=selected_model,
-        matomo_url=MATOMO_URL,
-        matomo_site_id=MATOMO_SITE_ID,
-        legal_notice_url=LEGAL_NOTICE_URL,
-        privacy_url=PRIVACY_URL,
-        accessibility_url=ACCESSIBILITY_URL,
-        sign_language_url=SIGN_LANGUAGE_URL,
-        easy_language_url=EASY_LANGUAGE_URL,
-    )
+        "filters": params.get("filters", {}) if system.name == "vufind" else {},
+        "show_filters": system.name == "vufind" and search_class == "catalog",
+    })
+    return overrides
+
+
+# --- Flask Routes ---
+@app.route("/", methods=["GET"])
+def index():
+    return render_template("index.html", **_search_context(None, LLM_MODELS[0]))
+
+
+@app.route("/search", methods=["GET", "POST"])
+def search():
+    """Search form (POST) and deep link / auto-search mode (GET ?nl=...)."""
+    if request.method == "POST":
+        nl = request.form.get("nl", "").strip()
+        selected_model = request.form.get("model", LLM_MODELS[0]).strip()
+        if selected_model not in LLM_MODELS:
+            selected_model = LLM_MODELS[0]
+        # Collect user filters (for systems that support them)
+        user_filters = {}
+        if "vufind" in systems:
+            for key in ("language", "material_type", "year_from", "year_to"):
+                value = request.form.get(key, "").strip()
+                if value:
+                    user_filters[key] = value
+    else:
+        nl = request.args.get("nl", "").strip()
+        selected_model = LLM_MODELS[0]
+        user_filters = None
+
+    if not nl:
+        return index()
+
+    return render_template("index.html", **_search_context(
+        nl, selected_model, **_run_search(nl, selected_model, user_filters)
+    ))
 
 
 # --- API ---
@@ -397,7 +357,8 @@ def api_search():
     """JSON API for programmatic access (e.g. phone interface).
 
     Request:  {"query": "...", "model": "..."}
-    Response: {"summary": "...", "follow_up_queries": [...], "results": [...]}
+    Response: {"summary": "...", "follow_up_queries": [...],
+               "search_url": "...", "results": [...]}
     """
     if not _check_rate_limit(
         _api_rate_limit_data, API_RATE_LIMIT_REQUESTS, API_RATE_LIMIT_WINDOW
@@ -441,6 +402,7 @@ def api_search():
         {
             "summary": _strip_html(str(summary_html)),
             "follow_up_queries": follow_up_queries,
+            "search_url": params.get("search_url", ""),
             "results": [
                 {
                     "title": r.get("title", ""),

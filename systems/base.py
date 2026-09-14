@@ -242,6 +242,15 @@ class DiscoverySystem:
         """
         raise NotImplementedError
 
+    def build_search_url(self, params):
+        """
+        Build a public catalog search-page URL for the given search params.
+
+        Returns:
+            str: The search URL, or "" if the system does not support it.
+        """
+        return ""
+
     def summarize_results(self, nl_query, items, model=None):
         """
         Summarize search results using LLM.

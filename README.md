@@ -38,6 +38,16 @@ The application automatically detects which discovery system to use:
 - **Primo** is used if `PRIMO_SEARCH_ENDPOINT` is configured and VuFind is not
 - **Primo** can be forced by including "primo" (case-insensitive) in the search query
 
+The search page also supports a deep link / auto-search mode for embedding in
+other tools (e.g. a button in a catalog UI). Pass the natural-language query as
+the `nl` parameter and the search runs on page load:
+
+- URL: http://localhost:5001/search?nl=B%C3%BCcher%20%C3%BCber%20KI
+
+The rendered page shows the AI summary, the normalized results, and a link to
+the equivalent classic catalog search URL (the boolean `lookfor` query with all
+filters applied).
+
 ## API
 
 A JSON API is available for programmatic access (e.g. phone applications).
@@ -59,6 +69,7 @@ Send a natural language query and receive a summary, follow-up suggestions, and 
 |-------|------|-------------|
 | `summary` | string | Plain text summary of the search results |
 | `follow_up_queries` | string[] | Suggested follow-up questions |
+| `search_url` | string | Direct URL to the equivalent classic catalog search (VuFind) |
 | `results` | object[] | Matching records (title, author, url, year) |
 
 **Rate limiting:** 10 requests per minute per IP (configurable via `API_RATE_LIMIT`).
