@@ -21,7 +21,6 @@ class VuFindSystem(DiscoverySystem):
     MATERIAL_TYPE_MAP = {
         "article": "Journal",
         "book": "Book",
-        "thesis": "Serial",
         "ebook": "eBook",
         "conference": "Conference Proceeding",
     }
@@ -74,7 +73,7 @@ class VuFindSystem(DiscoverySystem):
             "MainHeading, Heading), "
             "'filters' (dict: language, year_from, year_to, material_type)."
             "\nmaterial_type must be one of: Book, eBook, Journal, Serial, Conference Proceeding."
-            "\nMap common terms: article → Journal, book → Book, thesis → Serial."
+            "\nMap common terms: article → Journal, book → Book."
             "\nsearch_class rules:"
             "\n- catalog (default): search the library catalog (also for person names, titles, subjects)"
             "\n- authority: ONLY when the query explicitly mentions Normdaten, GND, Authority Record, or asks to look up an authority record"
