@@ -16,6 +16,7 @@ System detection:
   - Fall back to Primo if PRIMO_SEARCH_ENDPOINT is configured
 """
 
+import html
 import json
 import logging
 import os
@@ -361,8 +362,9 @@ def search():
 
 # --- API ---
 def _strip_html(html_str):
-    """Strip HTML tags, returning plain text."""
-    return re.sub(r"<[^>]+>", "", html_str)
+    """Strip HTML tags, decode entities, returning plain text."""
+    text = re.sub(r"<[^>]+>", "", html_str)
+    return html.unescape(text)
 
 
 @app.route("/api/search", methods=["POST"])
