@@ -48,6 +48,11 @@ OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 OPENAI_API_URL = os.environ.get("OPENAI_API_URL")
 LLM_MODELS = [m.strip() for m in os.environ.get("LLM_MODELS", "gpt-4").split(",") if m.strip()]
 
+# Fixed model used for query decomposition (translate_query). The model the user
+# picks in the UI is used for the result-summarization step instead. Defaults to
+# the first entry of LLM_MODELS.
+DECOMPOSE_MODEL = os.environ.get("DECOMPOSE_MODEL", "").strip() or LLM_MODELS[0]
+
 VUFIND_SEARCH_ENDPOINT = os.environ.get("VUFIND_SEARCH_ENDPOINT")
 PRIMO_SEARCH_ENDPOINT = os.environ.get("PRIMO_SEARCH_ENDPOINT")
 MAX_RESULTS = int(os.environ.get("MAX_RESULTS", "10"))
@@ -103,9 +108,9 @@ client = OpenAI(base_url=OPENAI_API_URL, api_key=OPENAI_API_KEY)
 
 systems = {}
 if VUFIND_SEARCH_ENDPOINT:
-    systems["vufind"] = VuFindSystem(client, LLM_MODELS[0], max_results=MAX_RESULTS)
+    systems["vufind"] = VuFindSystem(client, DECOMPOSE_MODEL, max_results=MAX_RESULTS)
 if PRIMO_SEARCH_ENDPOINT:
-    systems["primo"] = PrimoSystem(client, LLM_MODELS[0], max_results=MAX_RESULTS)
+    systems["primo"] = PrimoSystem(client, DECOMPOSE_MODEL, max_results=MAX_RESULTS)
 
 if not systems:
     raise RuntimeError(
@@ -267,7 +272,7 @@ def _run_search(nl, selected_model, user_filters=None):
         return {"error": "Kein Discovery-System konfiguriert.", "show_filters": False}
 
     try:
-        translated = system.translate_query(nl, model=selected_model)
+        translated = system.translate_query(nl, model=DECOMPOSE_MODEL)
     except Exception as e:
         return {
             "error": str(e),
@@ -390,7 +395,7 @@ def api_search():
         return jsonify({"error": "No discovery system configured."}), 503
 
     try:
-        translated = system.translate_query(nl, model=selected_model)
+        translated = system.translate_query(nl, model=DECOMPOSE_MODEL)
     except Exception as e:
         return jsonify({"error": str(e)}), 502
 

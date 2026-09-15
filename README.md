@@ -61,7 +61,7 @@ Send a natural language query and receive a summary, follow-up suggestions, and 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `query` | string | yes | Natural language search query |
-| `model` | string | no | LLM model name (defaults to first in `LLM_MODELS`) |
+| `model` | string | no | LLM model used for the result summary (defaults to first in `LLM_MODELS`). Query decomposition always uses the fixed `DECOMPOSE_MODEL`. |
 
 **Response**
 
@@ -146,7 +146,8 @@ Key environment variables in `.env`:
 |----------|-------------|
 | `OPENAI_API_KEY` | API key for OpenAI-compatible LLM (required) |
 | `OPENAI_API_URL` | Base URL for the LLM API (e.g., `http://localhost:11434/v1` for Ollama) |
-| `LLM_MODELS` | Comma-separated list of available models (first is default, e.g. `gpt-4,llama3,mistral`) |
+| `LLM_MODELS` | Comma-separated list of models offered in the UI dropdown; the selected model is used for the result summary (first is default, e.g. `gpt-4,llama3,mistral`) |
+| `DECOMPOSE_MODEL` | Fixed model for query decomposition (optional, defaults to first in `LLM_MODELS`) |
 | `VUFIND_SEARCH_ENDPOINT` | VuFind API search endpoint URL |
 | `VUFIND_WEB_URL` | Public base URL of the VuFind web UI for user-facing catalog links (optional, defaults to the API endpoint's base) |
 | `PRIMO_SEARCH_ENDPOINT` | Primo API search endpoint URL |

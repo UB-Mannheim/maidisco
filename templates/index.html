@@ -282,7 +282,7 @@ footer a:hover { color: var(--brand-light); }
   {% if models|length > 1 %}
   <div class="filters-row four-cols">
     <div>
-      <label for="model">Model</label>
+      <label for="model">Summary model</label>
       <select id="model" name="model">
         {% for m in models %}
         <option value="{{ m }}" {{ 'selected' if selected_model == m }}>{{ m }}</option>

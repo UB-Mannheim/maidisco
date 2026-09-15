@@ -93,6 +93,11 @@ class VuFindSystem(DiscoverySystem):
             "unless the term itself is the topic. Expand each concept with synonyms and "
             "translate it into both German and English; deduplicate identical terms. "
             "Quality over quantity.\n"
+            "CRITICAL: every concept group must contain at least one single-word core "
+            "term (a noun or key word), not only multi-word phrases — phrase-only groups "
+            "produce no hits in the catalog. Do NOT form a group from generic filler "
+            'words such as "literatur", "literature", "artikel", "buecher", "books" or '
+            '"publikationen"; drop those words entirely.\n'
             '\n'
             '- "excluded_terms" (required): list of plain-text terms to exclude, or [] if none.\n'
             '\n'
